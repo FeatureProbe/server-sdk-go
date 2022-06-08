@@ -14,3 +14,8 @@ func TestTogglesUnmarshal(t *testing.T) {
 	err := json.Unmarshal(bytes, &toggles)
 	assert.Equal(t, nil, err)
 }
+
+func TestSaltHash(t *testing.T) {
+	var h = salt_hash("key", "salt", 10000)
+	assert.Equal(t, h, 2647)
+}
