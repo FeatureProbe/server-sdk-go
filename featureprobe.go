@@ -1,7 +1,8 @@
 package featureprobe
 
 type Toggles struct {
-	Toggles map[string]Toggle `json:"toggles"`
+	Toggles  map[string]Toggle  `json:"toggles"`
+	Segments map[string]Segment `json:"segments,omitempty"`
 }
 
 type Toggle struct {
@@ -12,6 +13,13 @@ type Toggle struct {
 	DefaultServe Serve                    `json:"defaultServe"`
 	Rules        []Rule                   `json:"rules"`
 	Variations   []map[string]interface{} `json:"variations"`
+}
+
+type Segment struct {
+	Key     string `json:"key"`
+	UniqId  string `json:"uniqueId"`
+	Version uint64 `json:"version"`
+	Rules   []Rule `json:"rules"`
 }
 
 type Serve struct {
