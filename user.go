@@ -12,15 +12,15 @@ func NewUser(key string) *FPUser {
 	}
 }
 
-func (u FPUser) With(key string, value string) *FPUser {
+func (u *FPUser) With(key string, value string) *FPUser {
 	u.attrs[key] = value
-	return &u
+	return u
 }
 
-func (u FPUser) GetAll() map[string]string {
+func (u *FPUser) GetAll() map[string]string {
 	return u.attrs
 }
 
-func (u FPUser) Get(key string) string {
+func (u *FPUser) Get(key string) string {
 	return u.attrs[key]
 }
