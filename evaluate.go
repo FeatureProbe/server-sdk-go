@@ -139,7 +139,15 @@ func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 	}
 
 	if !t.Enabled {
-		serve, _ := t.DisabledServe.SelectVariation(params)
+		serve, err := t.DisabledServe.SelectVariation(params)
+		if err != nil {
+			return EvalDetail{
+				Value:     nil,
+				Version:   &t.Version,
+				RuleIndex: nil,
+				Reason:    err.Error(),
+			}, err
+		}
 		return EvalDetail{
 			Value:     serve,
 			Version:   &t.Version,
@@ -218,7 +226,6 @@ func (s *Split) FindIndex(params evalParams) (int, error) {
 	}
 
 	bucketIndex := saltHash(hashKey, salt, 10000)
-	fmt.Println(bucketIndex)
 
 	variation := -1
 	for v, d := range s.Distribution {

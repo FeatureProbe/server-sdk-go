@@ -43,6 +43,7 @@ func TestNotMatchSegmentCondition(t *testing.T) {
 
 	user := NewUser("key11").With("city", "100")
 	toggle := repo.Toggles["json_toggle"]
+	toggle.Eval(user, repo.Segments)
 	detail, _ := toggle.EvalDetail(user, repo.Segments)
 	t.Log(detail)
 	assert.Equal(t, detail.Reason, "default")
@@ -108,6 +109,32 @@ func TestDisabledToggle(t *testing.T) {
 
 	_, err = toggle.Eval(user, repo.Segments)
 	assert.Empty(t, err)
+}
+
+func TestDistributionNoSalt(t *testing.T) {
+	distribution := [][]Range{
+		{Range{Lower: 0, Upper: 2647}},
+		{Range{Lower: 2647, Upper: 2648}},
+		{Range{Lower: 2648, Upper: 10000}},
+	}
+
+	split := Split{
+		Distribution: distribution,
+		BucketBy:     "name",
+		Salt:         "",
+	}
+
+	user := NewUser("key").With("name", "key")
+
+	params := evalParams{
+		Key:        "not care",
+		User:       user,
+		Variations: nil,
+		Segments:   nil,
+	}
+
+	index, _ := split.FindIndex(params)
+	assert.Equal(t, index, 2)
 }
 
 func TestDistributionInExactBucket(t *testing.T) {
@@ -513,6 +540,18 @@ func TestUnknownPredicate(t *testing.T) {
 	assert.False(t, r)
 }
 
+func TestUnknownConditionType(t *testing.T) {
+	c := Condition{
+		Type:      "unkown",
+		Subject:   "subject",
+		Predicate: "name",
+		Objects:   nil,
+	}
+	u := NewUser("key")
+	b := c.Meet(u, nil)
+	assert.False(t, b)
+}
+
 func TestMatchEqualString(t *testing.T) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
@@ -537,4 +576,119 @@ func TestInvalidJsonRange(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonStr), &r)
 	assert.Error(t, err)
 
+}
+
+func TestDisabledOutOfRangeToggle(t *testing.T) {
+	var toggle Toggle
+	jsonStr := `
+		{
+            "key": "disabled_toggle",
+            "enabled": false,
+            "version": 1,
+            "disabledServe": {
+                "select": 2
+            },
+            "defaultServe": {
+                "select": 2
+            },
+            "rules": [],
+            "variations": [
+                {},
+                {
+                    "disabled_key": "disabled_value"
+                }
+            ]
+        }`
+	err := json.Unmarshal([]byte(jsonStr), &toggle)
+	assert.Empty(t, err)
+	user := NewUser("key")
+	_, err = toggle.Eval(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
+
+	_, err = toggle.EvalDetail(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
+}
+
+func TestEnabledOutOfRangeToggle(t *testing.T) {
+	var toggle Toggle
+	jsonStr := `
+		{
+            "key": "disabled_toggle",
+            "enabled": true,
+            "version": 1,
+            "disabledServe": {
+                "select": 2
+            },
+            "defaultServe": {
+                "select": 2
+            },
+            "rules": [{
+			  	"serve": {
+					"select": 2
+			  	},
+			  	"conditions": [
+					{
+					  	"type": "string",
+					  	"subject": "city",
+					  	"predicate": "is one of",
+					  	"objects": [
+						 	"1",
+						 	"2",
+						 	"3"
+					  ]
+					}
+				]
+			}],
+            "variations": [
+                {},
+                {
+                    "disabled_key": "disabled_value"
+                }
+            ]
+        }`
+	err := json.Unmarshal([]byte(jsonStr), &toggle)
+	assert.Empty(t, err)
+	user := NewUser("key").With("city", "1")
+	_, err = toggle.Eval(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
+
+	_, err = toggle.EvalDetail(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
+}
+
+func TestDefaultServeOutOfRangeToggle(t *testing.T) {
+	var toggle Toggle
+	jsonStr := `
+		{
+            "key": "disabled_toggle",
+            "enabled": true,
+            "version": 1,
+            "disabledServe": {
+                "select": 2
+            },
+            "defaultServe": {
+                "select": 2
+            },
+            "rules": [],
+            "variations": [
+                {},
+                {
+                    "disabled_key": "disabled_value"
+                }
+            ]
+        }`
+	err := json.Unmarshal([]byte(jsonStr), &toggle)
+	assert.Empty(t, err)
+	user := NewUser("key").With("city", "1")
+	_, err = toggle.Eval(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
+
+	_, err = toggle.EvalDetail(user, nil)
+	t.Log(err)
+	assert.Error(t, err)
 }
