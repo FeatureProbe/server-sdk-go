@@ -38,13 +38,8 @@ type Segment struct {
 }
 
 type Serve struct {
-	Select Select `json:"select,omitempty"`
-	Split  Split  `json:"split,omitempty"`
-}
-
-type Select struct {
-	Value    int  `json:"-"`
-	HasValue bool `json:"-"`
+	Select *int   `json:"select,omitempty"`
+	Split  *Split `json:"split,omitempty"`
 }
 
 type Rule struct {
@@ -78,6 +73,13 @@ type evalParams struct {
 	Segments   map[string]Segment
 }
 
+type EvalDetail struct {
+	Value     interface{}
+	RuleIndex *int
+	Version   *uint64
+	Reason    string
+}
+
 func saltHash(key string, salt string, bucketSize uint32) int {
 	h := sha1.New()
 	h.Write([]byte(key + salt))
@@ -87,19 +89,6 @@ func saltHash(key string, salt string, bucketSize uint32) int {
 	// avoid negative number mod
 	mod := int64(value) % int64(bucketSize)
 	return int(mod)
-}
-
-func (s *Select) UnmarshalJSON(data []byte) error {
-	var raw int
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
-		return err
-	}
-	*s = Select{
-		Value:    raw,
-		HasValue: true,
-	}
-	return nil
 }
 
 func (r *Range) UnmarshalJSON(data []byte) error {
@@ -142,10 +131,64 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 	return t.DefaultServe.SelectVariation(params)
 }
 
+func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetail, error) {
+	params := evalParams{
+		User:       user,
+		Segments:   segments,
+		Variations: t.Variations,
+	}
+
+	if !t.Enabled {
+		serve, _ := t.DisabledServe.SelectVariation(params)
+		return EvalDetail{
+			Value:     serve,
+			Version:   &t.Version,
+			RuleIndex: nil,
+			Reason:    "disabled",
+		}, nil
+	}
+
+	for index, rule := range t.Rules {
+		serve, err := rule.ServeVariation(params)
+		if err != nil {
+			return EvalDetail{
+				Value:     nil,
+				Version:   &t.Version,
+				RuleIndex: &index,
+				Reason:    err.Error(),
+			}, err
+		}
+		if serve != nil {
+			return EvalDetail{
+				Value:     serve,
+				RuleIndex: &index,
+				Version:   &t.Version,
+				Reason:    fmt.Sprintf("rule %d ", index),
+			}, nil
+		}
+	}
+
+	serve, err := t.DefaultServe.SelectVariation(params)
+	if err != nil {
+		return EvalDetail{
+			Value:     nil,
+			RuleIndex: nil,
+			Version:   &t.Version,
+			Reason:    err.Error(),
+		}, err
+	}
+	return EvalDetail{
+		Value:     serve,
+		RuleIndex: nil,
+		Version:   &t.Version,
+		Reason:    "default",
+	}, nil
+}
+
 func (s *Serve) SelectVariation(params evalParams) (interface{}, error) {
 	var index int
-	if s.Select.HasValue {
-		index = s.Select.Value
+	if s.Select != nil {
+		index = *s.Select
 	} else {
 		i, err := s.Split.FindIndex(params)
 		if err != nil {
@@ -208,11 +251,11 @@ func (s *Split) hashKey(params evalParams) (string, error) {
 
 func (r *Rule) ServeVariation(params evalParams) (interface{}, error) {
 	for _, c := range r.Conditions {
-		if c.Meet(params.User, params.Segments) {
-			return r.Serve.SelectVariation(params)
+		if !c.Meet(params.User, params.Segments) {
+			return nil, nil
 		}
 	}
-	return nil, nil
+	return r.Serve.SelectVariation(params)
 }
 
 func (c *Condition) Meet(user FPUser, segments map[string]Segment) bool {

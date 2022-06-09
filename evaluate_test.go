@@ -13,7 +13,7 @@ func TestTogglesUnmarshal(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/toggles.json")
 	err := json.Unmarshal(bytes, &toggles)
 	assert.Equal(t, nil, err)
-	//t.Log(toggles)
+	t.Log(toggles)
 }
 
 func TestSaltHash(t *testing.T) {
@@ -29,6 +29,27 @@ func TestMultiConditions(t *testing.T) {
 
 	user := NewUser("key").With("city", "1").With("os", "linux")
 	toggle := repo.Toggles["multi_condition_toggle"]
-	r, err := toggle.Eval(*user, repo.Segments)
-	t.Log(r)
+	r, _ := toggle.Eval(*user, repo.Segments)
+	v, ok := r.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, v["variation_0"], "")
+
+	user = NewUser("key").With("city", "1").With("os", "linux")
+	toggle = repo.Toggles["multi_condition_toggle"]
+	detail, _ := toggle.EvalDetail(*user, repo.Segments)
+	v, ok = detail.Value.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, v["variation_0"], "")
+
+	user = NewUser("key").With("os", "linux")
+	detail, _ = toggle.EvalDetail(*user, repo.Segments)
+	_, ok = detail.Value.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, detail.Reason, "default")
+
+	user = NewUser("key").With("city", "1")
+	detail, _ = toggle.EvalDetail(*user, repo.Segments)
+	_, ok = detail.Value.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, detail.Reason, "default")
 }
