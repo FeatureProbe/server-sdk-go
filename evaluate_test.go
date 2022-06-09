@@ -21,6 +21,47 @@ func TestSaltHash(t *testing.T) {
 	assert.Equal(t, h, 2647)
 }
 
+func TestMatchSegmentCondition(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	err := json.Unmarshal(bytes, &repo)
+	assert.Equal(t, nil, err)
+
+	user := NewUser("key11").With("city", "4")
+	toggle := repo.Toggles["json_toggle"]
+	detail, _ := toggle.EvalDetail(user, repo.Segments)
+	v, ok := detail.Value.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, v["variation_1"], "v2")
+}
+
+func TestNotMatchSegmentCondition(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	err := json.Unmarshal(bytes, &repo)
+	assert.Equal(t, nil, err)
+
+	user := NewUser("key11").With("city", "100")
+	toggle := repo.Toggles["json_toggle"]
+	detail, _ := toggle.EvalDetail(user, repo.Segments)
+	t.Log(detail)
+	assert.Equal(t, detail.Reason, "default")
+}
+
+func TestNoSegments(t *testing.T) {
+	c := Condition{
+		Type:      "segment",
+		Subject:   "subject",
+		Predicate: "name",
+		Objects:   nil,
+	}
+
+	user := NewUser("key11").With("city", "100")
+	r := c.MatchSegmentCondition(user, nil)
+	assert.False(t, r)
+
+}
+
 func TestMultiConditions(t *testing.T) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
@@ -456,7 +497,7 @@ func TestInvalidRegex(t *testing.T) {
 	assert.False(t, r)
 }
 
-func TestUnkownPredicate(t *testing.T) {
+func TestUnknownPredicate(t *testing.T) {
 	condition := Condition{
 		Type:      "string",
 		Subject:   "name",

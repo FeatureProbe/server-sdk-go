@@ -197,9 +197,9 @@ func (s *Serve) SelectVariation(params evalParams) (interface{}, error) {
 		index = i
 	}
 
-	len := len(params.Variations)
-	if index >= len {
-		return nil, fmt.Errorf("index %d overflow, variations count is %d", index, len)
+	length := len(params.Variations)
+	if index >= length {
+		return nil, fmt.Errorf("index %d overflow, variations count is %d", index, length)
 	}
 	return params.Variations[index], nil
 }
@@ -263,12 +263,13 @@ func (r *Rule) ServeVariation(params evalParams) (interface{}, error) {
 }
 
 func (c *Condition) Meet(user FPUser, segments map[string]Segment) bool {
-	if c.Type == "string" {
-		if c.MatchStringCondition(user, c.Predicate) {
-			return true
-		}
+	switch c.Type {
+	case "string":
+		return c.MatchStringCondition(user, c.Predicate)
+	case "segment":
+		return c.MatchSegmentCondition(user, segments)
 	}
-	// TODO: type segments
+
 	return false
 }
 
@@ -278,16 +279,16 @@ func (c *Condition) MatchStringCondition(user FPUser, predict string) bool {
 		return false
 	}
 
-	switch {
-	case predict == "is one of":
+	switch predict {
+	case "is one of":
 		return c.MatchObjects(func(o string) bool { return customValue == o })
-	case predict == "starts with":
+	case "starts with":
 		return c.MatchObjects(func(o string) bool { return strings.HasPrefix(customValue, o) })
-	case predict == "ends with":
+	case "ends with":
 		return c.MatchObjects(func(o string) bool { return strings.HasSuffix(customValue, o) })
-	case predict == "contains":
+	case "contains":
 		return c.MatchObjects(func(o string) bool { return strings.Contains(customValue, o) })
-	case predict == "matches regex":
+	case "matches regex":
 		return c.MatchObjects(func(o string) bool {
 			matched, err := regexp.Match(o, []byte(customValue))
 			if err != nil {
@@ -295,24 +296,61 @@ func (c *Condition) MatchStringCondition(user FPUser, predict string) bool {
 			}
 			return matched
 		})
-	case predict == "is not any of":
+	case "is not any of":
 		return !c.MatchStringCondition(user, "is one of")
-	case predict == "does not start with":
+	case "does not start with":
 		return !c.MatchStringCondition(user, "starts with")
-	case predict == "does not end with":
+	case "does not end with":
 		return !c.MatchStringCondition(user, "ends with")
-	case predict == "does not contain":
+	case "does not contain":
 		return !c.MatchStringCondition(user, "contains")
-	case predict == "does not match regex":
+	case "does not match regex":
 		return !c.MatchStringCondition(user, "matches regex")
 	}
 
 	return false
 }
 
+func (c *Condition) MatchSegmentCondition(user FPUser, segments map[string]Segment) bool {
+	if segments == nil {
+		return false
+	}
+	return c.UserInSegments(user, segments)
+}
+
+func (c *Condition) UserInSegments(user FPUser, segments map[string]Segment) bool {
+	for _, segmentKey := range c.Objects {
+		segment, ok := segments[segmentKey]
+		if ok {
+			if segment.Contains(user) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (c *Condition) MatchObjects(f func(string) bool) bool {
 	for _, o := range c.Objects {
 		if f(o) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Segment) Contains(user FPUser) bool {
+	for _, rule := range s.Rules {
+		if rule.Allow(user) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Rule) Allow(user FPUser) bool {
+	for _, condition := range r.Conditions {
+		if condition.Meet(user, nil) {
 			return true
 		}
 	}
