@@ -5,22 +5,22 @@ type FPUser struct {
 	attrs map[string]string
 }
 
-func NewUser(key string) *FPUser {
-	return &FPUser{
+func NewUser(key string) FPUser {
+	return FPUser{
 		Key:   key,
 		attrs: map[string]string{},
 	}
 }
 
-func (u *FPUser) With(key string, value string) *FPUser {
+func (u FPUser) With(key string, value string) FPUser {
 	u.attrs[key] = value
 	return u
 }
 
-func (u *FPUser) GetAll() map[string]string {
+func (u FPUser) GetAll() map[string]string {
 	return u.attrs
 }
 
-func (u *FPUser) Get(key string) string {
+func (u FPUser) Get(key string) string {
 	return u.attrs[key]
 }

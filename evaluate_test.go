@@ -29,27 +29,471 @@ func TestMultiConditions(t *testing.T) {
 
 	user := NewUser("key").With("city", "1").With("os", "linux")
 	toggle := repo.Toggles["multi_condition_toggle"]
-	r, _ := toggle.Eval(*user, repo.Segments)
+	r, _ := toggle.Eval(user, repo.Segments)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
 	user = NewUser("key").With("city", "1").With("os", "linux")
 	toggle = repo.Toggles["multi_condition_toggle"]
-	detail, _ := toggle.EvalDetail(*user, repo.Segments)
+	detail, _ := toggle.EvalDetail(user, repo.Segments)
 	v, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
 	user = NewUser("key").With("os", "linux")
-	detail, _ = toggle.EvalDetail(*user, repo.Segments)
+	detail, _ = toggle.EvalDetail(user, repo.Segments)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, detail.Reason, "default")
 
 	user = NewUser("key").With("city", "1")
-	detail, _ = toggle.EvalDetail(*user, repo.Segments)
+	detail, _ = toggle.EvalDetail(user, repo.Segments)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, detail.Reason, "default")
+}
+
+func TestDisabledToggle(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	err := json.Unmarshal(bytes, &repo)
+	assert.Equal(t, nil, err)
+
+	user := NewUser("key").With("city", "100")
+	toggle := repo.Toggles["disabled_toggle"]
+	detail, _ := toggle.EvalDetail(user, repo.Segments)
+	assert.Equal(t, detail.Reason, "disabled")
+
+	_, err = toggle.Eval(user, repo.Segments)
+	assert.Empty(t, err)
+}
+
+func TestDistributionInExactBucket(t *testing.T) {
+	distribution := [][]Range{
+		{Range{Lower: 0, Upper: 2647}},
+		{Range{Lower: 2647, Upper: 2648}},
+		{Range{Lower: 2648, Upper: 10000}},
+	}
+
+	split := Split{
+		Distribution: distribution,
+		BucketBy:     "name",
+		Salt:         "salt",
+	}
+
+	user := NewUser("key").With("name", "key")
+
+	params := evalParams{
+		Key:        "not care",
+		User:       user,
+		Variations: nil,
+		Segments:   nil,
+	}
+
+	index, _ := split.FindIndex(params)
+	assert.Equal(t, index, 1)
+}
+
+func TestDistributionInNoneBucket(t *testing.T) {
+	distribution := [][]Range{
+		{Range{Lower: 0, Upper: 2647}},
+		{Range{Lower: 2648, Upper: 10000}},
+	}
+
+	split := Split{
+		Distribution: distribution,
+		BucketBy:     "name",
+		Salt:         "salt",
+	}
+
+	user := NewUser("key").With("name", "key")
+
+	params := evalParams{
+		Key:        "not care",
+		User:       user,
+		Variations: nil,
+		Segments:   nil,
+	}
+
+	_, err := split.FindIndex(params)
+	assert.Error(t, err)
+}
+
+func TestSelectVariationFail(t *testing.T) {
+	distribution := [][]Range{
+		{Range{Lower: 0, Upper: 5000}},
+		{Range{Lower: 5000, Upper: 10000}},
+	}
+
+	split := Split{
+		Distribution: distribution,
+		BucketBy:     "name",
+		Salt:         "salt",
+	}
+	serve := Serve{
+		Split:  &split,
+		Select: nil,
+	}
+
+	user := NewUser("key")
+
+	params := evalParams{
+		Key:  "not care",
+		User: user,
+		Variations: []interface{}{
+			"a", "b",
+		},
+		Segments: nil,
+	}
+
+	v, err := serve.SelectVariation(params)
+	assert.Equal(t, v, nil)
+	assert.Error(t, err)
+}
+
+func TestMatchIsOneOf(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "is one of",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "world")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchIsOneOf(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "is one of",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "not_in")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestUserMissKeyIsNotOneOf(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "is not any of",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchIsNotAnyOf(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "is not any of",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "not in")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestMatchEndsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "ends with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob world")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchEndsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "ends with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchNotEndsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not end with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchNotEndsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not end with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob world")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchStartsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "starts with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "world bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchStartsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "starts with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchNotStartsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not start with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchNotStartsWith(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not start with",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "world bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchCondition(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "contains",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice world bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchCondition(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "contains",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchNotCondition(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not contain",
+		Objects: []string{
+			"hello", "world",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice world bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchRegex(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "matches regex",
+		Objects: []string{
+			"hello", "world.*",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice world bob")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestMatchRegexFirstObject(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "matches regex",
+		Objects: []string{
+			"hello\\d", "world.*",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice orld bob hello3")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestNotMatchRegex(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "does not match regex",
+		Objects: []string{
+			"hello\\d", "world.*",
+		},
+	}
+
+	user := NewUser("not care").With("name", "alice orld bob hello")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.True(t, r)
+}
+
+func TestInvalidRegex(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "matches regex",
+		Objects: []string{
+			"\\\\\\",
+		},
+	}
+
+	user := NewUser("not care").With("name", "\\\\\\")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestUnkownPredicate(t *testing.T) {
+	condition := Condition{
+		Type:      "string",
+		Subject:   "name",
+		Predicate: "unknown",
+		Objects: []string{
+			"123",
+		},
+	}
+
+	user := NewUser("not care").With("name", "123")
+
+	r := condition.MatchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestMatchEqualString(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	err := json.Unmarshal(bytes, &repo)
+	assert.Equal(t, nil, err)
+
+	user := NewUser("key").With("city", "1")
+	toggle := repo.Toggles["json_toggle"]
+	r, _ := toggle.Eval(user, repo.Segments)
+	v, ok := r.(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, v["variation_0"], "c2")
+}
+
+func TestInvalidJsonRange(t *testing.T) {
+	var r Range
+	jsonStr := `{"a": 123}`
+	err := json.Unmarshal([]byte(jsonStr), &r)
+	assert.Error(t, err)
+
+	jsonStr = `[100]`
+	err = json.Unmarshal([]byte(jsonStr), &r)
+	assert.Error(t, err)
+
 }

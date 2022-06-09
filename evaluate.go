@@ -229,6 +229,10 @@ func (s *Split) FindIndex(params evalParams) (int, error) {
 		}
 	}
 
+	if variation == -1 {
+		return variation, fmt.Errorf("not find hash_bucket in distribution")
+	}
+
 	return variation, nil
 }
 
