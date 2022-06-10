@@ -51,64 +51,7 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	}, nil
 }
 
-func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool) bool {
-	if fp.Repo == nil {
-		return defaultValue
-	}
-	t, ok := fp.Repo.Toggles[toggle]
-	if !ok {
-		return defaultValue
-	}
-	val, err := t.Eval(user, fp.Repo.Segments)
-	if err != nil {
-		return defaultValue
-	}
-	r, ok := val.(bool)
-	if !ok {
-		return defaultValue
-	}
-	return r
-}
-
-func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string) string {
-	if fp.Repo == nil {
-		return defaultValue
-	}
-	t, ok := fp.Repo.Toggles[toggle]
-	if !ok {
-		return defaultValue
-	}
-	val, err := t.Eval(user, fp.Repo.Segments)
-	if err != nil {
-		return defaultValue
-	}
-	r, ok := val.(string)
-	if !ok {
-		return defaultValue
-	}
-	return r
-}
-
-func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) float64 {
-	if fp.Repo == nil {
-		return defaultValue
-	}
-	t, ok := fp.Repo.Toggles[toggle]
-	if !ok {
-		return defaultValue
-	}
-	val, err := t.Eval(user, fp.Repo.Segments)
-	if err != nil {
-		return defaultValue
-	}
-	r, ok := val.(float64)
-	if !ok {
-		return defaultValue
-	}
-	return r
-}
-
-func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
+func (fp *FeatureProbe) genericValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
 	if fp.Repo == nil {
 		return defaultValue
 	}
@@ -123,131 +66,107 @@ func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue inter
 	return val
 }
 
-func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) FPBoolDetail {
-	notExist := FPBoolDetail{
-		Value:     defaultValue,
-		RuleIndex: nil,
-		Version:   nil,
-		Reason:    fmt.Sprintf("Toggle:[%s] not exist", toggle),
+func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool) bool {
+	val := fp.genericValue(toggle, user, defaultValue)
+	r, ok := val.(bool)
+	if !ok {
+		return defaultValue
 	}
+	return r
+}
+
+func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string) string {
+	val := fp.genericValue(toggle, user, defaultValue)
+	r, ok := val.(string)
+	if !ok {
+		return defaultValue
+	}
+	return r
+}
+
+func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) float64 {
+	val := fp.genericValue(toggle, user, defaultValue)
+	r, ok := val.(float64)
+	if !ok {
+		return defaultValue
+	}
+	return r
+}
+
+func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
+	val := fp.genericValue(toggle, user, defaultValue)
+	return val
+}
+
+func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue interface{}) (interface{}, *int, *uint64, string) {
+	value := defaultValue
+	reason := fmt.Sprintf("Toggle:[%s] not exist", toggle)
+	var ruleIndex *int = nil
+	var version *uint64 = nil
+
 	if fp.Repo == nil {
-		return notExist
+		return value, ruleIndex, version, reason
 	}
 	t, ok := fp.Repo.Toggles[toggle]
 	if !ok {
-		return notExist
+		return value, ruleIndex, version, reason
 	}
 	detail, err := t.EvalDetail(user, fp.Repo.Segments)
-	r := FPBoolDetail{
-		Value:     defaultValue,
-		RuleIndex: detail.RuleIndex,
-		Version:   detail.Version,
-		Reason:    detail.Reason,
-	}
+
+	ruleIndex = detail.RuleIndex
+	version = detail.Version
+	reason = detail.Reason
+
 	if err != nil {
-		return r
+		return value, ruleIndex, version, reason
 	}
-	val, ok := detail.Value.(bool)
+
+	return detail.Value, ruleIndex, version, reason
+}
+
+func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) FPBoolDetail {
+	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
+	detail := FPBoolDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+
+	val, ok := value.(bool)
 	if !ok {
-		r.Reason = "Value type mismatch"
-		return r
+		detail.Reason = "Value type mismatch"
+		return detail
 	}
-	r.Value = val
-	return r
+	detail.Value = val
+	return detail
 }
 
 func (fp *FeatureProbe) StrDetail(toggle string, user FPUser, defaultValue string) FPStrDetail {
-	notExist := FPStrDetail{
-		Value:     defaultValue,
-		RuleIndex: nil,
-		Version:   nil,
-		Reason:    fmt.Sprintf("Toggle:[%s] not exist", toggle),
-	}
-	if fp.Repo == nil {
-		return notExist
-	}
-	t, ok := fp.Repo.Toggles[toggle]
+	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
+	detail := FPStrDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+
+	val, ok := value.(string)
 	if !ok {
-		return notExist
+		detail.Reason = "Value type mismatch"
+		return detail
 	}
-	detail, err := t.EvalDetail(user, fp.Repo.Segments)
-	r := FPStrDetail{
-		Value:     defaultValue,
-		RuleIndex: detail.RuleIndex,
-		Version:   detail.Version,
-		Reason:    detail.Reason,
-	}
-	if err != nil {
-		return r
-	}
-	val, ok := detail.Value.(string)
-	if !ok {
-		r.Reason = "Value type mismatch"
-		return r
-	}
-	r.Value = val
-	return r
+	detail.Value = val
+	return detail
 }
 
 func (fp *FeatureProbe) NumberDetail(toggle string, user FPUser, defaultValue float64) FPNumberDetail {
-	notExist := FPNumberDetail{
-		Value:     defaultValue,
-		RuleIndex: nil,
-		Version:   nil,
-		Reason:    fmt.Sprintf("Toggle:[%s] not exist", toggle),
-	}
-	if fp.Repo == nil {
-		return notExist
-	}
-	t, ok := fp.Repo.Toggles[toggle]
+	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
+	detail := FPNumberDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+
+	val, ok := value.(float64)
 	if !ok {
-		return notExist
+		detail.Reason = "Value type mismatch"
+		return detail
 	}
-	detail, err := t.EvalDetail(user, fp.Repo.Segments)
-	r := FPNumberDetail{
-		Value:     defaultValue,
-		RuleIndex: detail.RuleIndex,
-		Version:   detail.Version,
-		Reason:    detail.Reason,
-	}
-	if err != nil {
-		return r
-	}
-	val, ok := detail.Value.(float64)
-	if !ok {
-		r.Reason = "Value type mismatch"
-		return r
-	}
-	r.Value = val
-	return r
+	detail.Value = val
+	return detail
 }
 
 func (fp *FeatureProbe) JsonDetail(toggle string, user FPUser, defaultValue interface{}) FPJsonDetail {
-	notExist := FPJsonDetail{
-		Value:     defaultValue,
-		RuleIndex: nil,
-		Version:   nil,
-		Reason:    fmt.Sprintf("Toggle:[%s] not exist", toggle),
-	}
-	if fp.Repo == nil {
-		return notExist
-	}
-	t, ok := fp.Repo.Toggles[toggle]
-	if !ok {
-		return notExist
-	}
-	detail, err := t.EvalDetail(user, fp.Repo.Segments)
-	r := FPJsonDetail{
-		Value:     defaultValue,
-		RuleIndex: detail.RuleIndex,
-		Version:   detail.Version,
-		Reason:    detail.Reason,
-	}
-	if err != nil {
-		return r
-	}
-	r.Value = detail.Value
-	return r
+	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
+	detail := FPJsonDetail{Value: value, RuleIndex: ruleIndex, Version: version, Reason: reason}
+	return detail
 }
 
 func (fp *FeatureProbe) setRepoForTest(repo Repository) {
