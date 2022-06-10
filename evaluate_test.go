@@ -13,7 +13,6 @@ func TestTogglesUnmarshal(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/toggles.json")
 	err := json.Unmarshal(bytes, &toggles)
 	assert.Equal(t, nil, err)
-	t.Log(toggles)
 }
 
 func TestSaltHash(t *testing.T) {
@@ -45,7 +44,6 @@ func TestNotMatchSegmentCondition(t *testing.T) {
 	toggle := repo.Toggles["json_toggle"]
 	toggle.Eval(user, repo.Segments)
 	detail, _ := toggle.EvalDetail(user, repo.Segments)
-	t.Log(detail)
 	assert.Equal(t, detail.Reason, "default")
 }
 
@@ -428,7 +426,7 @@ func TestMatchCondition(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestNotMatchCondition(t *testing.T) {
+func TestNotMatchContainsCondition(t *testing.T) {
 	condition := Condition{
 		Type:      "string",
 		Subject:   "name",
@@ -444,7 +442,7 @@ func TestNotMatchCondition(t *testing.T) {
 	assert.False(t, r)
 }
 
-func TestMatchNotCondition(t *testing.T) {
+func TestMatchNotContainsCondition(t *testing.T) {
 	condition := Condition{
 		Type:      "string",
 		Subject:   "name",
@@ -603,11 +601,9 @@ func TestDisabledOutOfRangeToggle(t *testing.T) {
 	assert.Empty(t, err)
 	user := NewUser("key")
 	_, err = toggle.Eval(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 
 	_, err = toggle.EvalDetail(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 }
 
@@ -652,11 +648,9 @@ func TestEnabledOutOfRangeToggle(t *testing.T) {
 	assert.Empty(t, err)
 	user := NewUser("key").With("city", "1")
 	_, err = toggle.Eval(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 
 	_, err = toggle.EvalDetail(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 }
 
@@ -685,10 +679,8 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
 	assert.Empty(t, err)
 	user := NewUser("key").With("city", "1")
 	_, err = toggle.Eval(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 
 	_, err = toggle.EvalDetail(user, nil)
-	t.Log(err)
 	assert.Error(t, err)
 }
