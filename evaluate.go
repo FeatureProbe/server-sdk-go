@@ -116,11 +116,11 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 	}
 
 	if !t.Enabled {
-		return t.DisabledServe.SelectVariation(params)
+		return t.DisabledServe.selectVariation(params)
 	}
 
 	for _, rule := range t.Rules {
-		serve, err := rule.ServeVariation(params)
+		serve, err := rule.serveVariation(params)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +128,7 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 			return serve, nil
 		}
 	}
-	return t.DefaultServe.SelectVariation(params)
+	return t.DefaultServe.selectVariation(params)
 }
 
 func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetail, error) {
@@ -139,7 +139,7 @@ func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 	}
 
 	if !t.Enabled {
-		serve, err := t.DisabledServe.SelectVariation(params)
+		serve, err := t.DisabledServe.selectVariation(params)
 		if err != nil {
 			return EvalDetail{
 				Value:     nil,
@@ -157,7 +157,7 @@ func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 	}
 
 	for index, rule := range t.Rules {
-		serve, err := rule.ServeVariation(params)
+		serve, err := rule.serveVariation(params)
 		if err != nil {
 			return EvalDetail{
 				Value:     nil,
@@ -176,7 +176,7 @@ func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 		}
 	}
 
-	serve, err := t.DefaultServe.SelectVariation(params)
+	serve, err := t.DefaultServe.selectVariation(params)
 	if err != nil {
 		return EvalDetail{
 			Value:     nil,
@@ -193,12 +193,12 @@ func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 	}, nil
 }
 
-func (s *Serve) SelectVariation(params evalParams) (interface{}, error) {
+func (s *Serve) selectVariation(params evalParams) (interface{}, error) {
 	var index int
 	if s.Select != nil {
 		index = *s.Select
 	} else {
-		i, err := s.Split.FindIndex(params)
+		i, err := s.Split.findIndex(params)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +212,7 @@ func (s *Serve) SelectVariation(params evalParams) (interface{}, error) {
 	return params.Variations[index], nil
 }
 
-func (s *Split) FindIndex(params evalParams) (int, error) {
+func (s *Split) findIndex(params evalParams) (int, error) {
 	hashKey, err := s.hashKey(params)
 	if err != nil {
 		return -1, err
@@ -260,27 +260,27 @@ func (s *Split) hashKey(params evalParams) (string, error) {
 	return hashKey, nil
 }
 
-func (r *Rule) ServeVariation(params evalParams) (interface{}, error) {
+func (r *Rule) serveVariation(params evalParams) (interface{}, error) {
 	for _, c := range r.Conditions {
-		if !c.Meet(params.User, params.Segments) {
+		if !c.meet(params.User, params.Segments) {
 			return nil, nil
 		}
 	}
-	return r.Serve.SelectVariation(params)
+	return r.Serve.selectVariation(params)
 }
 
-func (c *Condition) Meet(user FPUser, segments map[string]Segment) bool {
+func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 	switch c.Type {
 	case "string":
-		return c.MatchStringCondition(user, c.Predicate)
+		return c.matchStringCondition(user, c.Predicate)
 	case "segment":
-		return c.MatchSegmentCondition(user, segments)
+		return c.matchSegmentCondition(user, segments)
 	}
 
 	return false
 }
 
-func (c *Condition) MatchStringCondition(user FPUser, predict string) bool {
+func (c *Condition) matchStringCondition(user FPUser, predict string) bool {
 	customValue := user.Get(c.Subject)
 	if len(customValue) == 0 {
 		return false
@@ -288,15 +288,15 @@ func (c *Condition) MatchStringCondition(user FPUser, predict string) bool {
 
 	switch predict {
 	case "is one of":
-		return c.MatchObjects(func(o string) bool { return customValue == o })
+		return c.matchObjects(func(o string) bool { return customValue == o })
 	case "starts with":
-		return c.MatchObjects(func(o string) bool { return strings.HasPrefix(customValue, o) })
+		return c.matchObjects(func(o string) bool { return strings.HasPrefix(customValue, o) })
 	case "ends with":
-		return c.MatchObjects(func(o string) bool { return strings.HasSuffix(customValue, o) })
+		return c.matchObjects(func(o string) bool { return strings.HasSuffix(customValue, o) })
 	case "contains":
-		return c.MatchObjects(func(o string) bool { return strings.Contains(customValue, o) })
+		return c.matchObjects(func(o string) bool { return strings.Contains(customValue, o) })
 	case "matches regex":
-		return c.MatchObjects(func(o string) bool {
+		return c.matchObjects(func(o string) bool {
 			matched, err := regexp.Match(o, []byte(customValue))
 			if err != nil {
 				return false
@@ -304,32 +304,32 @@ func (c *Condition) MatchStringCondition(user FPUser, predict string) bool {
 			return matched
 		})
 	case "is not any of":
-		return !c.MatchStringCondition(user, "is one of")
+		return !c.matchStringCondition(user, "is one of")
 	case "does not start with":
-		return !c.MatchStringCondition(user, "starts with")
+		return !c.matchStringCondition(user, "starts with")
 	case "does not end with":
-		return !c.MatchStringCondition(user, "ends with")
+		return !c.matchStringCondition(user, "ends with")
 	case "does not contain":
-		return !c.MatchStringCondition(user, "contains")
+		return !c.matchStringCondition(user, "contains")
 	case "does not match regex":
-		return !c.MatchStringCondition(user, "matches regex")
+		return !c.matchStringCondition(user, "matches regex")
 	}
 
 	return false
 }
 
-func (c *Condition) MatchSegmentCondition(user FPUser, segments map[string]Segment) bool {
+func (c *Condition) matchSegmentCondition(user FPUser, segments map[string]Segment) bool {
 	if segments == nil {
 		return false
 	}
-	return c.UserInSegments(user, segments)
+	return c.userInSegments(user, segments)
 }
 
-func (c *Condition) UserInSegments(user FPUser, segments map[string]Segment) bool {
+func (c *Condition) userInSegments(user FPUser, segments map[string]Segment) bool {
 	for _, segmentKey := range c.Objects {
 		segment, ok := segments[segmentKey]
 		if ok {
-			if segment.Contains(user) {
+			if segment.contains(user) {
 				return true
 			}
 		}
@@ -337,7 +337,7 @@ func (c *Condition) UserInSegments(user FPUser, segments map[string]Segment) boo
 	return false
 }
 
-func (c *Condition) MatchObjects(f func(string) bool) bool {
+func (c *Condition) matchObjects(f func(string) bool) bool {
 	for _, o := range c.Objects {
 		if f(o) {
 			return true
@@ -346,18 +346,18 @@ func (c *Condition) MatchObjects(f func(string) bool) bool {
 	return false
 }
 
-func (s *Segment) Contains(user FPUser) bool {
+func (s *Segment) contains(user FPUser) bool {
 	for _, rule := range s.Rules {
-		if rule.Allow(user) {
+		if rule.allow(user) {
 			return true
 		}
 	}
 	return false
 }
 
-func (r *Rule) Allow(user FPUser) bool {
+func (r *Rule) allow(user FPUser) bool {
 	for _, condition := range r.Conditions {
-		if condition.Meet(user, nil) {
+		if condition.meet(user, nil) {
 			return true
 		}
 	}

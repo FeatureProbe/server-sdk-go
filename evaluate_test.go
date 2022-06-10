@@ -58,7 +58,7 @@ func TestNoSegments(t *testing.T) {
 	}
 
 	user := NewUser("key11").With("city", "100")
-	r := c.MatchSegmentCondition(user, nil)
+	r := c.matchSegmentCondition(user, nil)
 	assert.False(t, r)
 
 }
@@ -133,7 +133,7 @@ func TestDistributionNoSalt(t *testing.T) {
 		Segments:   nil,
 	}
 
-	index, _ := split.FindIndex(params)
+	index, _ := split.findIndex(params)
 	assert.Equal(t, index, 2)
 }
 
@@ -159,7 +159,7 @@ func TestDistributionInExactBucket(t *testing.T) {
 		Segments:   nil,
 	}
 
-	index, _ := split.FindIndex(params)
+	index, _ := split.findIndex(params)
 	assert.Equal(t, index, 1)
 }
 
@@ -184,7 +184,7 @@ func TestDistributionInNoneBucket(t *testing.T) {
 		Segments:   nil,
 	}
 
-	_, err := split.FindIndex(params)
+	_, err := split.findIndex(params)
 	assert.Error(t, err)
 }
 
@@ -215,7 +215,7 @@ func TestSelectVariationFail(t *testing.T) {
 		Segments: nil,
 	}
 
-	v, err := serve.SelectVariation(params)
+	v, err := serve.selectVariation(params)
 	assert.Equal(t, v, nil)
 	assert.Error(t, err)
 }
@@ -232,7 +232,7 @@ func TestMatchIsOneOf(t *testing.T) {
 
 	user := NewUser("not care").With("name", "world")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -248,7 +248,7 @@ func TestNotMatchIsOneOf(t *testing.T) {
 
 	user := NewUser("not care").With("name", "not_in")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -264,7 +264,7 @@ func TestUserMissKeyIsNotOneOf(t *testing.T) {
 
 	user := NewUser("not care")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -280,7 +280,7 @@ func TestMatchIsNotAnyOf(t *testing.T) {
 
 	user := NewUser("not care").With("name", "not in")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -296,7 +296,7 @@ func TestMatchEndsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob world")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -312,7 +312,7 @@ func TestNotMatchEndsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -328,7 +328,7 @@ func TestMatchNotEndsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -344,7 +344,7 @@ func TestNotMatchNotEndsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob world")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -360,7 +360,7 @@ func TestMatchStartsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "world bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -376,7 +376,7 @@ func TestNotMatchStartsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -392,7 +392,7 @@ func TestMatchNotStartsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -408,7 +408,7 @@ func TestNotMatchNotStartsWith(t *testing.T) {
 
 	user := NewUser("not care").With("name", "world bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -424,7 +424,7 @@ func TestMatchCondition(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice world bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -440,7 +440,7 @@ func TestNotMatchCondition(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -456,7 +456,7 @@ func TestMatchNotCondition(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice world bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -472,7 +472,7 @@ func TestMatchRegex(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice world bob")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -488,7 +488,7 @@ func TestMatchRegexFirstObject(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice orld bob hello3")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -504,7 +504,7 @@ func TestNotMatchRegex(t *testing.T) {
 
 	user := NewUser("not care").With("name", "alice orld bob hello")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
 }
 
@@ -520,7 +520,7 @@ func TestInvalidRegex(t *testing.T) {
 
 	user := NewUser("not care").With("name", "\\\\\\")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -536,7 +536,7 @@ func TestUnknownPredicate(t *testing.T) {
 
 	user := NewUser("not care").With("name", "123")
 
-	r := condition.MatchStringCondition(user, condition.Predicate)
+	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
 }
 
@@ -548,7 +548,7 @@ func TestUnknownConditionType(t *testing.T) {
 		Objects:   nil,
 	}
 	u := NewUser("key")
-	b := c.Meet(u, nil)
+	b := c.meet(u, nil)
 	assert.False(t, b)
 }
 
