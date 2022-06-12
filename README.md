@@ -1,9 +1,10 @@
-# FeatureProbe Server Side SDK for Golang
+# FeatureProbe Server Side SDK for Golang (Alpha Version)
 [![Top Language](https://img.shields.io/github/languages/top/FeatureProbe/server-sdk-go)](https://github.com/FeatureProbe/server-sdk-go/search?l=go)
 [![codecov](https://codecov.io/gh/featureprobe/server-sdk-go/branch/main/graph/badge.svg?token=TAN3AU4CK2)](https://codecov.io/gh/featureprobe/server-sdk-go)
 [![Github Star](https://img.shields.io/github/stars/FeatureProbe/server-sdk-go)](https://github.com/FeatureProbe/server-sdk-go/stargazers)
 [![Apache-2.0 license](https://img.shields.io/github/license/FeatureProbe/FeatureProbe)](https://github.com/FeatureProbe/FeatureProbe/blob/main/LICENSE)
 
+This is alpha version and should not be considered ready for production use while this message is visible.
 
 Feature Probe is an open source feature management service. This SDK is used to control features in Golang programs. This
 SDK is designed primarily for use in multi-user systems such as web servers and applications.
