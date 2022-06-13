@@ -3,7 +3,7 @@ package featureprobe
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -50,7 +50,7 @@ func (s *Synchronizer) doSynchronize() {
 			continue
 		}
 
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		s.mu.Lock()
 		err = json.Unmarshal(bodyBytes, s.repository)
 		s.mu.Unlock()
