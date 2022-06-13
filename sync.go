@@ -28,7 +28,7 @@ func NewSynchronizer(url string, refreshMs time.Duration, auth string, repo *Rep
 	}
 }
 
-// create error channel ?
+//TODO: create error message channel?
 func (s *Synchronizer) StartSynchronize() {
 	go s.doSynchronize()
 }
@@ -57,7 +57,6 @@ func (s *Synchronizer) doSynchronize() {
 		if err != nil {
 			fmt.Errorf("%s", err)
 		}
-		//fmt.Println(string(bodyBytes))
 		time.Sleep(s.refreshMs * time.Millisecond)
 	}
 }
