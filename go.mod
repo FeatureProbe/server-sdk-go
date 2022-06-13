@@ -2,4 +2,7 @@ module github.com/featureprobe/server-sdk-go
 
 go 1.13
 
-require github.com/stretchr/testify v1.7.2
+require (
+	github.com/jarcoal/httpmock v1.2.0
+	github.com/stretchr/testify v1.7.2
+)
