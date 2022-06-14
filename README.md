@@ -23,6 +23,7 @@ First, install the FeatureProbe SDK as a dependency in your application.
 Next, import the FeatureProbe SDK in your application code:
 
 ```go
+import "github.com/featureprobe/server-sdk-go"
 ```
 
 ### Step 2. Create a FeatureProbe instance
@@ -30,14 +31,24 @@ Next, import the FeatureProbe SDK in your application code:
 After you install and import the SDK, create a single, shared instance of the FeatureProbe sdk.
 
 ```go
+config := FPConfig{
+    RemoteUrl:       "https://127.0.0.1:4007",
+    TogglesUrl:      nil,
+    EventsUrl:       nil,
+    ServerSdkKey:    "serverSdkKey",
+    RefreshInterval: 1,
+    WaitFirstResp:   true,
+}
 
+fp, err := NewFeatureProbe(config)
 ```
 
 ### Step 3. Use the feature toggle
 
 You can use sdk to check which variation a particular user will receive for a given feature flag.
 
-```
+```go
+val := fp.BoolValue("bool_toggle", user, true)
 ```
 
 ## Testing
