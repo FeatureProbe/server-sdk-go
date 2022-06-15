@@ -18,7 +18,7 @@ func TestSync(t *testing.T) {
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))
 
-	synchronizer.StartSynchronize()
+	synchronizer.Start()
 	time.Sleep(1 * time.Second)
 	count := httpmock.GetTotalCallCount()
 
@@ -38,7 +38,7 @@ func TestSyncInvalidJson(t *testing.T) {
 		httpmock.NewStringResponder(200, `{ `))
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 
-	synchronizer.StartSynchronize()
+	synchronizer.Start()
 	time.Sleep(1 * time.Second)
 	count := httpmock.GetTotalCallCount()
 
@@ -54,7 +54,7 @@ func TestSyncInvalidUrl(t *testing.T) {
 	_, jsonStr := setup(t)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
-	synchronizer.StartSynchronize()
+	synchronizer.Start()
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))
 

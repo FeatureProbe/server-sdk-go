@@ -1,6 +1,11 @@
 package featureprobe
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+	"net/http"
+	"time"
+)
 
 type FeatureProbe struct {
 	Config FPConfig
@@ -171,4 +176,22 @@ func (fp *FeatureProbe) JsonDetail(toggle string, user FPUser, defaultValue inte
 
 func (fp *FeatureProbe) setRepoForTest(repo Repository) {
 	fp.Repo = &repo
+}
+
+func newHttpClient(timeout time.Duration) http.Client {
+	return http.Client{
+		Timeout: timeout * time.Millisecond,
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 10 * time.Second,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          10,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   2 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
 }

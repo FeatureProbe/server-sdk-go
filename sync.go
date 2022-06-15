@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -31,7 +30,7 @@ func NewSynchronizer(url string, refreshMs time.Duration, auth string, repo *Rep
 }
 
 //TODO: create error message channel?
-func (s *Synchronizer) StartSynchronize() {
+func (s *Synchronizer) Start() {
 	s.once.Do(func() {
 		go s.doSynchronize()
 	})
@@ -64,23 +63,5 @@ func (s *Synchronizer) doSynchronize() {
 			fmt.Printf("%s\n", err)
 		}
 		time.Sleep(s.refreshMs * time.Millisecond)
-	}
-}
-
-func newHttpClient(timeout time.Duration) http.Client {
-	return http.Client{
-		Timeout: timeout * time.Millisecond,
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 10 * time.Second,
-			}).DialContext,
-			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          10,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   2 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
 	}
 }
