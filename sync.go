@@ -33,37 +33,44 @@ func NewSynchronizer(url string, refreshMs time.Duration, auth string, repo *Rep
 //TODO: create error message channel?
 func (s *Synchronizer) StartSynchronize() {
 	s.once.Do(func() {
-		go s.doSynchronize()
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					fmt.Printf("%s\n", err)
+				}
+			}()
+			for {
+				s.doSynchronize()
+				time.Sleep(s.refreshMs * time.Millisecond)
+			}
+		}()
 	})
 }
 
 func (s *Synchronizer) doSynchronize() {
-	for {
-		req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			break
-		}
-		req.Header.Add("Authorization", s.auth)
-		s.mu.Lock()
-		resp, err := s.httpClient.Do(req)
-		s.mu.Unlock()
-		if err != nil {
-			fmt.Printf("%s\n", err)
-		}
+	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	req.Header.Add("Authorization", s.auth)
+	s.mu.Lock()
+	resp, err := s.httpClient.Do(req)
+	s.mu.Unlock()
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
 
-		if resp == nil || resp.Body == nil {
-			continue
-		}
+	if resp == nil || resp.Body == nil {
+		return
+	}
 
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		s.mu.Lock()
-		err = json.Unmarshal(bodyBytes, s.repository)
-		s.mu.Unlock()
-		if err != nil {
-			fmt.Printf("%s\n", err)
-		}
-		time.Sleep(s.refreshMs * time.Millisecond)
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	s.mu.Lock()
+	err = json.Unmarshal(bodyBytes, s.repository)
+	s.mu.Unlock()
+	if err != nil {
+		fmt.Printf("%s\n", err)
 	}
 }
 
