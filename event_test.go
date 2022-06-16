@@ -9,8 +9,8 @@ import (
 
 func TestEventFlush(t *testing.T) {
 	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
-	version1 := int64(1)
-	version2 := int64(2)
+	version1 := int(1)
+	version2 := int(2)
 	recorder.RecordAccess(AccessEvent{
 		Time:    time.Now().Unix(),
 		Key:     "some_toggle",

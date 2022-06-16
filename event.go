@@ -25,8 +25,8 @@ type AccessEvent struct {
 	Time    int64       `json:"time"`
 	Key     string      `json:"key"`
 	Value   interface{} `json:"value"`
-	Index   *int64      `json:"index,omitempty"`
-	Version *int64      `json:"version,omitempty"`
+	Index   *int        `json:"index,omitempty"`
+	Version *int        `json:"version,omitempty"`
 	Reason  string      `json:"reason"`
 }
 
@@ -43,19 +43,19 @@ type Access struct {
 
 type ToggleCounter struct {
 	Value   interface{} `json:"Value"`
-	Version *int64      `json:"version,omitempty"`
-	Index   *int64      `json:"index,omitempty"`
-	Count   int64       `json:"Count"`
+	Version *int        `json:"version,omitempty"`
+	Index   *int        `json:"index,omitempty"`
+	Count   int         `json:"Count"`
 }
 
 type Variation struct {
 	Key     string `json:"key"`
-	Index   *int64 `json:"index"`
-	Version *int64 `json:"version"`
+	Index   *int   `json:"index"`
+	Version *int   `json:"version"`
 }
 
 type CountValue struct {
-	Count int64       `json:"count"`
+	Count int         `json:"count"`
 	Value interface{} `json:"value"`
 }
 

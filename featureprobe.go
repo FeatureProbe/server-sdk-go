@@ -72,23 +72,17 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	}, nil
 }
 
-func (fp *FeatureProbe) genericValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
-	if fp.Repo == nil {
-		return defaultValue
+func newForTest(serverKey string, repo Repository) FeatureProbe {
+	return FeatureProbe{
+		Config: FPConfig{
+			ServerSdkKey: serverKey,
+		},
+		Repo: &repo,
 	}
-	t, ok := fp.Repo.Toggles[toggle]
-	if !ok {
-		return defaultValue
-	}
-	val, err := t.Eval(user, fp.Repo.Segments)
-	if err != nil {
-		return defaultValue
-	}
-	return val
 }
 
 func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool) bool {
-	val := fp.genericValue(toggle, user, defaultValue)
+	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
 	r, ok := val.(bool)
 	if !ok {
 		return defaultValue
@@ -97,7 +91,7 @@ func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool)
 }
 
 func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string) string {
-	val := fp.genericValue(toggle, user, defaultValue)
+	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
 	r, ok := val.(string)
 	if !ok {
 		return defaultValue
@@ -106,7 +100,7 @@ func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string
 }
 
 func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) float64 {
-	val := fp.genericValue(toggle, user, defaultValue)
+	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
 	r, ok := val.(float64)
 	if !ok {
 		return defaultValue
@@ -115,7 +109,7 @@ func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue flo
 }
 
 func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
-	val := fp.genericValue(toggle, user, defaultValue)
+	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
 	return val
 }
 
@@ -138,9 +132,17 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	version = detail.Version
 	reason = detail.Reason
 
-	if err != nil {
-		return value, ruleIndex, version, reason
+	if err == nil {
+		value = detail.Value
 	}
+
+	fp.Recorder.RecordAccess(AccessEvent{
+		Time:   time.Now().Unix(),
+		Key:    toggle,
+		Value:  value,
+		Index:  ruleIndex,
+		Reason: reason,
+	})
 
 	return detail.Value, ruleIndex, version, reason
 }

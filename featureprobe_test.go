@@ -211,6 +211,128 @@ func TestOutOfIndexToggle(t *testing.T) {
 	assert.True(t, strings.Contains(detail4.Reason, "overflow"))
 }
 
+func TestContract(t *testing.T) {
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/server-sdk-specification/spec/toggle_simple_spec.json")
+	var tests ContractTests
+	err := json.Unmarshal(bytes, &tests)
+	assert.Equal(t, nil, err)
+
+	for _, scenario := range tests.Tests {
+		t.Log("scenario: ", scenario.Scenario)
+		assert.NotEmpty(t, scenario.Cases)
+
+		fp := newForTest("secret key", scenario.Fixture)
+
+		for _, Case := range scenario.Cases {
+			t.Log("  case: ", Case.Name)
+			user := NewUser(Case.User.Key)
+			for _, kv := range Case.User.CustomValues {
+				user = user.With(kv.Key, kv.Value)
+			}
+
+			switch Case.Function.Name {
+			case "bool_value":
+				d := Case.Function.Default.(bool)
+				v := fp.BoolValue(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v)
+			case "string_value":
+				d := Case.Function.Default.(string)
+				v := fp.StrValue(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v)
+			case "number_value":
+				d := Case.Function.Default.(float64)
+				v := fp.NumberValue(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v)
+			case "json_value":
+				d := Case.Function.Default
+				v := fp.JsonValue(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v)
+
+			case "bool_detail":
+				d := Case.Function.Default.(bool)
+				v := fp.BoolDetail(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v.Value)
+				assertBoolDetail(t, Case, v)
+			case "string_detail":
+				d := Case.Function.Default.(string)
+				v := fp.StrDetail(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v.Value)
+				assertStrDetail(t, Case, v)
+			case "number_detail":
+				d := Case.Function.Default.(float64)
+				v := fp.NumberDetail(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v.Value)
+				assertNumberDetail(t, Case, v)
+			case "json_detail":
+				d := Case.Function.Default
+				v := fp.JsonDetail(Case.Function.Toggle, user, d)
+				assert.Equal(t, Case.ExpectResult.Value, v.Value)
+				assertJsonDetail(t, Case, v)
+			}
+		}
+	}
+}
+
+func assertBoolDetail(t *testing.T, Case Case, r FPBoolDetail) {
+	if Case.ExpectResult.Reason != nil {
+		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+	}
+	if Case.ExpectResult.RuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
+	}
+	if Case.ExpectResult.NoRuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.NoRuleIndex, r.RuleIndex == nil)
+	}
+	if Case.ExpectResult.Version != nil {
+		assert.Equal(t, *Case.ExpectResult.Version, *r.Version)
+	}
+}
+
+func assertNumberDetail(t *testing.T, Case Case, r FPNumberDetail) {
+	if Case.ExpectResult.Reason != nil {
+		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+	}
+	if Case.ExpectResult.RuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
+	}
+	if Case.ExpectResult.NoRuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.NoRuleIndex, r.RuleIndex == nil)
+	}
+	if Case.ExpectResult.Version != nil {
+		assert.Equal(t, *Case.ExpectResult.Version, *r.Version)
+	}
+}
+
+func assertStrDetail(t *testing.T, Case Case, r FPStrDetail) {
+	if Case.ExpectResult.Reason != nil {
+		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+	}
+	if Case.ExpectResult.RuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
+	}
+	if Case.ExpectResult.NoRuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.NoRuleIndex, r.RuleIndex == nil)
+	}
+	if Case.ExpectResult.Version != nil {
+		assert.Equal(t, *Case.ExpectResult.Version, *r.Version)
+	}
+}
+
+func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
+	if Case.ExpectResult.Reason != nil {
+		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+	}
+	if Case.ExpectResult.RuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
+	}
+	if Case.ExpectResult.NoRuleIndex != nil {
+		assert.Equal(t, *Case.ExpectResult.NoRuleIndex, r.RuleIndex == nil)
+	}
+	if Case.ExpectResult.Version != nil {
+		assert.Equal(t, *Case.ExpectResult.Version, *r.Version)
+	}
+}
+
 func setupFeatureProbe(t *testing.T) FeatureProbe {
 	config := FPConfig{
 		RemoteUrl:       "",
@@ -224,4 +346,46 @@ func setupFeatureProbe(t *testing.T) FeatureProbe {
 	fp, err := NewFeatureProbe(config)
 	assert.Empty(t, err)
 	return fp
+}
+
+type ContractTests struct {
+	Tests []Scenario `json:"tests"`
+}
+
+type Scenario struct {
+	Scenario string     `json:"scenario"`
+	Cases    []Case     `json:"cases"`
+	Fixture  Repository `json:"fixture"`
+}
+
+type Case struct {
+	Name         string       `json:"name"`
+	User         User         `json:"user"`
+	Function     Function     `json:"function"`
+	ExpectResult ExpectResult `json:"expectResult"`
+}
+
+type User struct {
+	Key          string     `json:"key"`
+	CustomValues []KeyValue `json:"customValues"`
+}
+
+type Function struct {
+	Name    string      `json:"name"`
+	Toggle  string      `json:"toggle"`
+	Default interface{} `json:"default"`
+}
+
+type ExpectResult struct {
+	Value          interface{} `json:"value"`
+	Reason         *string     `json:"reason"`
+	RuleIndex      *int        `json:"ruleIndex"`
+	ConditionIndex *int        `json:"conditionIndex"`
+	NoRuleIndex    *bool       `json:"noRuleIndex"`
+	Version        *uint64     `json:"version"`
+}
+
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }

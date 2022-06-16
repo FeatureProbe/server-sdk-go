@@ -280,13 +280,13 @@ func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 	return false
 }
 
-func (c *Condition) matchStringCondition(user FPUser, predict string) bool {
+func (c *Condition) matchStringCondition(user FPUser, predicate string) bool {
 	customValue := user.Get(c.Subject)
 	if len(customValue) == 0 {
 		return false
 	}
 
-	switch predict {
+	switch predicate {
 	case "is one of":
 		return c.matchObjects(func(o string) bool { return customValue == o })
 	case "starts with":
@@ -318,11 +318,11 @@ func (c *Condition) matchStringCondition(user FPUser, predict string) bool {
 	return false
 }
 
-func (c *Condition) matchSegmentCondition(user FPUser, predict string, segments map[string]Segment) bool {
+func (c *Condition) matchSegmentCondition(user FPUser, predicate string, segments map[string]Segment) bool {
 	if segments == nil {
 		return false
 	}
-	switch predict {
+	switch predicate {
 	case "is in":
 		return c.userInSegments(user, segments)
 	case "is not in":

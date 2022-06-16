@@ -56,7 +56,7 @@ func TestNotMatchInSegmentCondition(t *testing.T) {
 
 	user := NewUser("key11").With("city", "100")
 	toggle := repo.Toggles["json_toggle"]
-	toggle.Eval(user, repo.Segments)
+	_, _ = toggle.Eval(user, repo.Segments)
 	detail, _ := toggle.EvalDetail(user, repo.Segments)
 	assert.Equal(t, detail.Reason, "default")
 }
@@ -77,7 +77,7 @@ func TestNoSegments(t *testing.T) {
 	assert.False(t, r)
 }
 
-func TestSegmentsUnkownPredict(t *testing.T) {
+func TestSegmentsUnknownPredicate(t *testing.T) {
 	c := Condition{
 		Type:      "segment",
 		Subject:   "subject",
@@ -571,7 +571,7 @@ func TestUnknownPredicate(t *testing.T) {
 
 func TestUnknownConditionType(t *testing.T) {
 	c := Condition{
-		Type:      "unkown",
+		Type:      "unknown",
 		Subject:   "subject",
 		Predicate: "name",
 		Objects:   nil,
