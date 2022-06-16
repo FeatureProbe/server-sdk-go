@@ -8,14 +8,16 @@ import (
 )
 
 type FeatureProbe struct {
-	Config FPConfig
-	Repo   *Repository
+	Config   FPConfig
+	Repo     *Repository
+	Syncer   Synchronizer
+	Recorder EventRecorder
 }
 
 type FPConfig struct {
 	RemoteUrl       string
-	TogglesUrl      *string
-	EventsUrl       *string
+	TogglesUrl      string
+	EventsUrl       string
 	ServerSdkKey    string
 	RefreshInterval int
 	WaitFirstResp   bool
@@ -50,9 +52,23 @@ type FPJsonDetail struct {
 }
 
 func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
+	repo := Repository{}
+	if len(config.EventsUrl) == 0 {
+		config.EventsUrl = config.RemoteUrl + "api/events"
+	}
+	if len(config.TogglesUrl) == 0 {
+		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
+	}
+	timeout := time.Duration(config.RefreshInterval)
+	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
+	toggleSyncer.Start()
+
+	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
+	eventRecorder.Start()
+
 	return FeatureProbe{
 		Config: config,
-		Repo:   nil,
+		Repo:   &repo,
 	}, nil
 }
 

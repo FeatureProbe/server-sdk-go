@@ -17,8 +17,8 @@ func TestNewFeatureProbe(t *testing.T) {
 
 	config := FPConfig{
 		RemoteUrl:       "",
-		TogglesUrl:      nil,
-		EventsUrl:       nil,
+		TogglesUrl:      "",
+		EventsUrl:       "",
 		ServerSdkKey:    "",
 		RefreshInterval: 1,
 		WaitFirstResp:   true,
@@ -29,7 +29,18 @@ func TestNewFeatureProbe(t *testing.T) {
 }
 
 func TestEvalNilRepo(t *testing.T) {
-	fp := setupFeatureProbe(t)
+	config := FPConfig{
+		RemoteUrl:       "",
+		TogglesUrl:      "",
+		EventsUrl:       "",
+		ServerSdkKey:    "",
+		RefreshInterval: 1,
+		WaitFirstResp:   true,
+	}
+	fp := FeatureProbe{
+		Repo:   nil,
+		Config: config,
+	}
 	user := NewUser("key11").With("city", "4")
 
 	val := fp.BoolValue("bool_toggle", user, true)
@@ -203,8 +214,8 @@ func TestOutOfIndexToggle(t *testing.T) {
 func setupFeatureProbe(t *testing.T) FeatureProbe {
 	config := FPConfig{
 		RemoteUrl:       "",
-		TogglesUrl:      nil,
-		EventsUrl:       nil,
+		TogglesUrl:      "",
+		EventsUrl:       "",
 		ServerSdkKey:    "",
 		RefreshInterval: 1,
 		WaitFirstResp:   true,

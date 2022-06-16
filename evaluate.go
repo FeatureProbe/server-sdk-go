@@ -274,7 +274,7 @@ func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 	case "string":
 		return c.matchStringCondition(user, c.Predicate)
 	case "segment":
-		return c.matchSegmentCondition(user, segments)
+		return c.matchSegmentCondition(user, c.Predicate, segments)
 	}
 
 	return false
@@ -318,11 +318,17 @@ func (c *Condition) matchStringCondition(user FPUser, predict string) bool {
 	return false
 }
 
-func (c *Condition) matchSegmentCondition(user FPUser, segments map[string]Segment) bool {
+func (c *Condition) matchSegmentCondition(user FPUser, predict string, segments map[string]Segment) bool {
 	if segments == nil {
 		return false
 	}
-	return c.userInSegments(user, segments)
+	switch predict {
+	case "is in":
+		return c.userInSegments(user, segments)
+	case "is not in":
+		return !c.userInSegments(user, segments)
+	}
+	return false
 }
 
 func (c *Condition) userInSegments(user FPUser, segments map[string]Segment) bool {
