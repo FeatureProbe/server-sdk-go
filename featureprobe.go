@@ -126,7 +126,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	if !ok {
 		return value, ruleIndex, version, reason
 	}
-	detail, err := t.EvalDetail(user, fp.Repo.Segments)
+	detail, err := t.evalDetail(user, fp.Repo.Segments)
 
 	ruleIndex = detail.RuleIndex
 	version = detail.Version
@@ -144,7 +144,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 		Reason: reason,
 	})
 
-	return detail.Value, ruleIndex, version, reason
+	return value, ruleIndex, version, reason
 }
 
 func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) FPBoolDetail {

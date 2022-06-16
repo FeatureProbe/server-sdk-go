@@ -131,7 +131,7 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 	return t.DefaultServe.selectVariation(params)
 }
 
-func (t *Toggle) EvalDetail(user FPUser, segments map[string]Segment) (EvalDetail, error) {
+func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetail, error) {
 	params := evalParams{
 		User:       user,
 		Segments:   segments,

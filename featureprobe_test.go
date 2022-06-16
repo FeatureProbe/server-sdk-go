@@ -158,9 +158,9 @@ func TestOutOfIndexToggle(t *testing.T) {
 {
 	"segments": {},
 	"toggles": {
-		"disabled_toggle": {
-			"key": "disabled_toggle",
-			"enabled": false,
+		"overflow_bool_toggle": {
+			"key": "overflow_bool_toggle",
+			"enabled": true,
 			"version": 1,
 			"disabledServe": {
 				"select": 2
@@ -169,11 +169,46 @@ func TestOutOfIndexToggle(t *testing.T) {
 				"select": 2
 			},
 			"rules": [],
-			"variations": [{},
-				{
-					"disabled_key": "disabled_value"
-				}
-			]
+			"variations": [true, false]
+		},
+		"overflow_str_toggle": {
+			"key": "overflow_str_toggle",
+			"enabled": true,
+			"version": 1,
+			"disabledServe": {
+				"select": 2
+			},
+			"defaultServe": {
+				"select": 2
+			},
+			"rules": [],
+			"variations": ["1", "2"]
+		},
+		"overflow_number_toggle": {
+			"key": "overflow_number_toggle",
+			"enabled": true,
+			"version": 1,
+			"disabledServe": {
+				"select": 2
+			},
+			"defaultServe": {
+				"select": 2
+			},
+			"rules": [],
+			"variations": [1.0, 2.0]
+		},
+		"overflow_json_toggle": {
+			"key": "overflow_json_toggle",
+			"enabled": true,
+			"version": 1,
+			"disabledServe": {
+				"select": 2
+			},
+			"defaultServe": {
+				"select": 2
+			},
+			"rules": [],
+			"variations": [{}, {}]
 		}
 	}
 }`
@@ -186,26 +221,26 @@ func TestOutOfIndexToggle(t *testing.T) {
 
 	user := NewUser("key11").With("city", "4")
 
-	v := fp.BoolValue("disabled_toggle", user, false)
-	detail := fp.BoolDetail("disabled_toggle", user, false)
+	v := fp.BoolValue("overflow_bool_toggle", user, false)
+	detail := fp.BoolDetail("overflow_bool_toggle", user, false)
 	assert.Equal(t, v, false)
 	assert.Equal(t, detail.Value, false)
 	assert.True(t, strings.Contains(detail.Reason, "overflow"))
 
-	v2 := fp.StrValue("disabled_toggle", user, "1")
-	detail2 := fp.StrDetail("disabled_toggle", user, "1")
+	v2 := fp.StrValue("overflow_str_toggle", user, "1")
+	detail2 := fp.StrDetail("overflow_str_toggle", user, "1")
 	assert.Equal(t, v2, "1")
 	assert.Equal(t, detail2.Value, "1")
 	assert.True(t, strings.Contains(detail2.Reason, "overflow"))
 
-	v3 := fp.NumberValue("disabled_toggle", user, 1.0)
-	detail3 := fp.NumberDetail("disabled_toggle", user, 1.0)
+	v3 := fp.NumberValue("overflow_number_toggle", user, 1.0)
+	detail3 := fp.NumberDetail("overflow_number_toggle", user, 1.0)
 	assert.Equal(t, v3, 1.0)
 	assert.Equal(t, detail3.Value, 1.0)
 	assert.True(t, strings.Contains(detail3.Reason, "overflow"))
 
-	v4 := fp.JsonValue("disabled_toggle", user, nil)
-	detail4 := fp.JsonDetail("disabled_toggle", user, nil)
+	v4 := fp.JsonValue("overflow_json_toggle", user, nil)
+	detail4 := fp.JsonDetail("overflow_json_toggle", user, nil)
 	assert.Equal(t, v4, nil)
 	assert.Equal(t, detail4.Value, nil)
 	assert.True(t, strings.Contains(detail4.Reason, "overflow"))
