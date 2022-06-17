@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -53,6 +54,9 @@ type FPJsonDetail struct {
 
 func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	repo := Repository{}
+	if !strings.HasSuffix(config.RemoteUrl, "/") {
+		config.RemoteUrl += "/"
+	}
 	if len(config.EventsUrl) == 0 {
 		config.EventsUrl = config.RemoteUrl + "api/events"
 	}
@@ -60,6 +64,7 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
 	}
 	timeout := time.Duration(config.RefreshInterval)
+	// TODO: wait response if config.WaitFirstResp is true
 	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
 	toggleSyncer.Start()
 
