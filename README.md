@@ -1,4 +1,5 @@
 # FeatureProbe Server Side SDK for Golang (Alpha Version)
+
 [![Top Language](https://img.shields.io/github/languages/top/FeatureProbe/server-sdk-go)](https://github.com/FeatureProbe/server-sdk-go/search?l=go)
 [![codecov](https://codecov.io/gh/featureprobe/server-sdk-go/branch/main/graph/badge.svg?token=TAN3AU4CK2)](https://codecov.io/gh/featureprobe/server-sdk-go)
 [![Github Star](https://img.shields.io/github/stars/FeatureProbe/server-sdk-go)](https://github.com/FeatureProbe/server-sdk-go/stargazers)
@@ -15,15 +16,16 @@ In this guide we explain how to use feature toggles in a Golang application usin
 
 ### Step 1. Install the Golang SDK
 
-First, install the FeatureProbe SDK as a dependency in your application.
-
-```shell
-```
-
-Next, import the FeatureProbe SDK in your application code:
+Fisrt import the FeatureProbe SDK in your application code:
 
 ```go
 import "github.com/featureprobe/server-sdk-go"
+```
+
+Fetch the FeatureProbe SDK as a dependency in `go.mod`.
+
+```shell
+go get github.com/featureprobe/server-sdk-go
 ```
 
 ### Step 2. Create a FeatureProbe instance
@@ -33,11 +35,8 @@ After you install and import the SDK, create a single, shared instance of the Fe
 ```go
 config := FPConfig{
     RemoteUrl:       "https://127.0.0.1:4007",
-    TogglesUrl:      nil,
-    EventsUrl:       nil,
     ServerSdkKey:    "serverSdkKey",
-    RefreshInterval: 1,
-    WaitFirstResp:   true,
+    RefreshInterval: 1000,
 }
 
 fp, err := NewFeatureProbe(config)
@@ -62,6 +61,7 @@ go test
 ```
 
 ## Contributing
+
 We are working on continue evolving FeatureProbe core, making it flexible and easier to use.
 Development of FeatureProbe happens in the open on GitHub, and we are grateful to the
 community for contributing bugfixes and improvements.

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/featureprobe/server-sdk-go"
+	featureprobe "github.com/featureprobe/server-sdk-go"
 )
 
 func main() {
 	config := featureprobe.FPConfig{
 		RemoteUrl:       "http://127.0.0.1:4001",
 		ServerSdkKey:    "server-8ed48815ef044428826787e9a238b9c6a479f98c",
-		RefreshInterval: 1000,
+		RefreshInterval: 1000, // ms
 		WaitFirstResp:   true,
 	}
 	fp, err := featureprobe.NewFeatureProbe(config)

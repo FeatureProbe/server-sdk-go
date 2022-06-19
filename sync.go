@@ -10,22 +10,22 @@ import (
 )
 
 type Synchronizer struct {
-	auth       string
-	togglesUrl string
-	refreshMs  time.Duration
-	repository *Repository
-	httpClient http.Client
-	mu         sync.Mutex
-	once       sync.Once
+	auth            string
+	togglesUrl      string
+	RefreshInterval time.Duration
+	repository      *Repository
+	httpClient      http.Client
+	mu              sync.Mutex
+	once            sync.Once
 }
 
-func NewSynchronizer(url string, refreshMs time.Duration, auth string, repo *Repository) Synchronizer {
+func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, repo *Repository) Synchronizer {
 	return Synchronizer{
-		auth:       auth,
-		togglesUrl: url,
-		refreshMs:  refreshMs,
-		httpClient: newHttpClient(refreshMs),
-		repository: repo,
+		auth:            auth,
+		togglesUrl:      url,
+		RefreshInterval: RefreshInterval,
+		httpClient:      newHttpClient(RefreshInterval),
+		repository:      repo,
 	}
 }
 
@@ -62,6 +62,6 @@ func (s *Synchronizer) doSynchronize() {
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
-		time.Sleep(s.refreshMs * time.Millisecond)
+		time.Sleep(s.RefreshInterval * time.Millisecond)
 	}
 }
