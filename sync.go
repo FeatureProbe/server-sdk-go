@@ -16,7 +16,9 @@ type Synchronizer struct {
 	repository      *Repository
 	httpClient      http.Client
 	mu              sync.Mutex
-	once            sync.Once
+	startOnce       sync.Once
+	stopOnce        sync.Once
+	stopChan        chan struct{}
 }
 
 func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, repo *Repository) Synchronizer {
@@ -26,42 +28,63 @@ func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, rep
 		RefreshInterval: RefreshInterval,
 		httpClient:      newHttpClient(RefreshInterval),
 		repository:      repo,
+		stopChan:        make(chan struct{}),
 	}
 }
 
 //TODO: create error message channel?
 func (s *Synchronizer) Start() {
-	s.once.Do(func() {
-		go s.doSynchronize()
+	ticker := time.NewTimer(s.RefreshInterval * time.Millisecond)
+	s.startOnce.Do(func() {
+		go func() {
+			defer ticker.Stop()
+			for {
+				select {
+				case <-s.stopChan:
+					return
+				case <-ticker.C:
+					s.fetchRemoteRepo()
+				}
+			}
+		}()
 	})
 }
 
-func (s *Synchronizer) doSynchronize() {
-	for {
-		req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			break
-		}
-		req.Header.Add("Authorization", s.auth)
-		s.mu.Lock()
-		resp, err := s.httpClient.Do(req)
-		s.mu.Unlock()
-		if err != nil {
-			fmt.Printf("%s\n", err)
-		}
+func (s *Synchronizer) Stop() {
+	if s.stopChan == nil {
+		return
+	}
+	s.stopOnce.Do(func() {
+		close(s.stopChan)
+	})
+}
 
-		if resp == nil || resp.Body == nil {
-			continue
-		}
+func (s *Synchronizer) fetchRemoteRepo() {
 
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		s.mu.Lock()
-		err = json.Unmarshal(bodyBytes, s.repository)
-		s.mu.Unlock()
-		if err != nil {
-			fmt.Printf("%s\n", err)
-		}
-		time.Sleep(s.RefreshInterval * time.Millisecond)
+	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	req.Header.Add("Authorization", s.auth)
+	s.mu.Lock()
+	resp, err := s.httpClient.Do(req)
+	s.mu.Unlock()
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+
+	if resp == nil || resp.Body == nil {
+		return
+	}
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	s.mu.Lock()
+	err = json.Unmarshal(bodyBytes, s.repository)
+	s.mu.Unlock()
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
 	}
 }
