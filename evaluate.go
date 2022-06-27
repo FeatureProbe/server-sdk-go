@@ -6,7 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
+
+	"github.com/masterminds/semver"
 )
 
 type Repository struct {
@@ -275,6 +279,12 @@ func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 		return c.matchStringCondition(user, c.Predicate)
 	case "segment":
 		return c.matchSegmentCondition(user, c.Predicate, segments)
+	case "datetime":
+		return c.matchDatetimeCondition(user, c.Predicate)
+	case "semver":
+		return c.matchSemverCondition(user, c.Predicate)
+	case "number":
+		return c.matchNumberCondition(user, c.Predicate)
 	}
 
 	return false
@@ -331,6 +341,85 @@ func (c *Condition) matchSegmentCondition(user FPUser, predicate string, segment
 	return false
 }
 
+func (c *Condition) userDatetime(user FPUser) (int64, error) {
+	customValue := user.Get(c.Subject)
+	if len(customValue) == 0 {
+		return time.Now().Unix(), nil
+	}
+	return strconv.ParseInt(customValue, 10, 64)
+}
+
+func (c *Condition) matchDatetimeCondition(user FPUser, predicate string) bool {
+	cv, err := c.userDatetime(user)
+	if err != nil {
+		return false
+	}
+	switch predicate {
+	case "after":
+		return c.matchDatetimeObjects(func(o int64) bool { return cv >= o })
+	case "before":
+		return c.matchDatetimeObjects(func(o int64) bool { return cv < o })
+	}
+	return false
+}
+
+func (c *Condition) matchSemverCondition(user FPUser, predicate string) bool {
+	customValue := user.Get(c.Subject)
+	if len(customValue) == 0 {
+		return false
+	}
+	cv, err := semver.NewVersion(customValue)
+	if err != nil {
+		return false
+	}
+
+	switch predicate {
+	case "=":
+		return c.matchSemVerObjects(func(o *semver.Version) bool { return cv.Equal(o) })
+	case "!=":
+		return !c.matchSemverCondition(user, "=")
+	case ">":
+		return c.matchSemVerObjects(func(o *semver.Version) bool { return cv.GreaterThan(o) })
+	case ">=":
+		return c.matchSemVerObjects(func(o *semver.Version) bool { return cv.GreaterThan(o) || cv.Equal(o) })
+	case "<":
+		return c.matchSemVerObjects(func(o *semver.Version) bool { return cv.LessThan(o) })
+	case "<=":
+		return c.matchSemVerObjects(func(o *semver.Version) bool { return cv.LessThan(o) || cv.Equal(o) })
+	}
+
+	return false
+
+}
+
+func (c *Condition) matchNumberCondition(user FPUser, predicate string) bool {
+	customValue := user.Get(c.Subject)
+	if len(customValue) == 0 {
+		return false
+	}
+	cv, err := strconv.ParseFloat(customValue, 32)
+	if err != nil {
+		return false
+	}
+
+	switch predicate {
+	case "=":
+		return c.matchNumberObjects(func(o float64) bool { return cv == o })
+	case "!=":
+		return !c.matchNumberCondition(user, "=")
+	case ">":
+		return c.matchNumberObjects(func(o float64) bool { return cv > o })
+	case ">=":
+		return c.matchNumberObjects(func(o float64) bool { return cv >= o })
+	case "<":
+		return c.matchNumberObjects(func(o float64) bool { return cv < o })
+	case "<=":
+		return c.matchNumberObjects(func(o float64) bool { return cv <= o })
+	}
+
+	return false
+}
+
 func (c *Condition) userInSegments(user FPUser, segments map[string]Segment) bool {
 	for _, segmentKey := range c.Objects {
 		segment, ok := segments[segmentKey]
@@ -346,6 +435,45 @@ func (c *Condition) userInSegments(user FPUser, segments map[string]Segment) boo
 func (c *Condition) matchObjects(f func(string) bool) bool {
 	for _, o := range c.Objects {
 		if f(o) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Condition) matchDatetimeObjects(f func(int64) bool) bool {
+	for _, o := range c.Objects {
+		co, err := strconv.ParseInt(o, 10, 64)
+		if err != nil {
+			return false
+		}
+		if f(co) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Condition) matchNumberObjects(f func(float64) bool) bool {
+	for _, o := range c.Objects {
+		co, err := strconv.ParseFloat(o, 32)
+		if err != nil {
+			return false
+		}
+		if f(co) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Condition) matchSemVerObjects(f func(*semver.Version) bool) bool {
+	for _, o := range c.Objects {
+		co, err := semver.NewVersion(o)
+		if err != nil {
+			return false
+		}
+		if f(co) {
 			return true
 		}
 	}

@@ -2,8 +2,10 @@ package featureprobe
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -566,6 +568,520 @@ func TestUnknownPredicate(t *testing.T) {
 	user := NewUser("not care").With("name", "123")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
+	assert.False(t, r)
+}
+
+func TestDatetimeBefore(t *testing.T) {
+	now := time.Now().Unix()
+	condition := Condition{
+		Type:      "datetime",
+		Subject:   "datetime",
+		Predicate: "before",
+		Objects: []string{
+			fmt.Sprintf("%d", now+1),
+		},
+	}
+
+	user := NewUser("not care")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user.With("datetime", fmt.Sprintf("%d", now))
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user.With("datetime", fmt.Sprintf("%d", now+1))
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestDatetimeAfter(t *testing.T) {
+	now := time.Now().Unix()
+	condition := Condition{
+		Type:      "datetime",
+		Subject:   "datetime",
+		Predicate: "after",
+		Objects: []string{
+			fmt.Sprintf("%d", now),
+		},
+	}
+
+	user := NewUser("not care")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user.With("datetime", fmt.Sprintf("%d", now))
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user.With("datetime", fmt.Sprintf("%d", now+1))
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user.With("datetime", fmt.Sprintf("%d", now-1))
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestDatetimeInvalidCustomValue(t *testing.T) {
+	condition := Condition{
+		Type:      "datetime",
+		Subject:   "datetime",
+		Predicate: "after",
+		Objects:   []string{},
+	}
+
+	user := NewUser("not care").With("datetime", "a")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestDatetimeInvalid(t *testing.T) {
+	condition := Condition{
+		Type:      "datetime",
+		Subject:   "datetime",
+		Predicate: "after",
+		Objects: []string{
+			"a",
+		},
+	}
+
+	user := NewUser("not care")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestDatetimeUnknownPredicate(t *testing.T) {
+	condition := Condition{
+		Type:      "datetime",
+		Subject:   "datetime",
+		Predicate: "a",
+		Objects: []string{
+			"a",
+		},
+	}
+
+	user := NewUser("not care")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestNumberEqual(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "=",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "1")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestNumberNotEqual(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "!=",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "1")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestNumberGreaterThan(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: ">",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "1")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestNumberGreaterThanOrEqualTo(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: ">=",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "0")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "1")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestNumberLessThan(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "<",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "1")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestNumberLessThanOrEqualTo(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "<=",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "1")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "2")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "3")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("price", "4")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestNumberInvalid(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "?",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "a")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	condition = Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: ">",
+		Objects: []string{
+			"a",
+		},
+	}
+
+	user = NewUser("not care").With("price", "1")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestNumberUnknownPredicate(t *testing.T) {
+	condition := Condition{
+		Type:      "number",
+		Subject:   "price",
+		Predicate: "?",
+		Objects: []string{
+			"1", "2", "3",
+		},
+	}
+
+	user := NewUser("not care").With("price", "0")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestSemVerEqual(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: "=",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "1.0.0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "2.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestSemVerNotEqual(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: "!=",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "1.0.0")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "2.0.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestSemVerGreaterThan(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: ">",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "1.0.0")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "2.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestSemVerGreaterThanOrEqualTo(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: ">=",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "1.0.0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "2.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+}
+
+func TestSemVerLessThan(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: "<",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "0.1.0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "3.0.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestSemVerLessThanOrEqualTo(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: "<=",
+		Objects: []string{
+			"1.0.0", "2.0.0", "3.0.0",
+		},
+	}
+
+	user := NewUser("not care").With("version", "0.1.0")
+	r := condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "1.1.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "2.0.0")
+	r = condition.meet(user, nil)
+	assert.True(t, r)
+
+	user = NewUser("not care").With("version", "4.1.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+}
+
+func TestSemVerInvalid(t *testing.T) {
+	condition := Condition{
+		Type:      "semver",
+		Subject:   "version",
+		Predicate: ">",
+		Objects: []string{
+			"invalid",
+		},
+	}
+
+	user := NewUser("not care").With("version", "0.1.0")
+	r := condition.meet(user, nil)
+	assert.False(t, r)
+
+	condition.Predicate = "?"
+	user = NewUser("not care").With("version", "0.1.0")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care")
+	r = condition.meet(user, nil)
+	assert.False(t, r)
+
+	user = NewUser("not care").With("version", "invalid_version")
+	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
 
