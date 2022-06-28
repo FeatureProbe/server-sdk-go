@@ -17,7 +17,7 @@ type Synchronizer struct {
 	httpClient      http.Client
 	mu              sync.Mutex
 	startOnce       sync.Once
-	closeOne        sync.Once
+	stopOnce        sync.Once
 	stopChan        chan struct{}
 }
 
@@ -54,7 +54,7 @@ func (s *Synchronizer) Stop() {
 	if s.stopChan == nil {
 		return
 	}
-	s.closeOne.Do(func() {
+	s.stopOnce.Do(func() {
 		close(s.stopChan)
 	})
 }
