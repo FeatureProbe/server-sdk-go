@@ -60,7 +60,6 @@ func (s *Synchronizer) Stop() {
 }
 
 func (s *Synchronizer) fetchRemoteRepo() {
-
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
 	if err != nil {
 		fmt.Printf("%s\n", err)
