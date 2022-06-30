@@ -123,6 +123,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	reason := fmt.Sprintf("Toggle:[%s] not exist", toggle)
 	var ruleIndex *int = nil
 	var version *uint64 = nil
+	var variationIndex *int = nil
 
 	if fp.Repo == nil {
 		return value, ruleIndex, version, reason
@@ -133,6 +134,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	}
 	detail, err := t.evalDetail(user, fp.Repo.Segments)
 
+	variationIndex = detail.VariationIndex
 	ruleIndex = detail.RuleIndex
 	version = detail.Version
 	reason = detail.Reason
@@ -145,7 +147,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 		Time:   time.Now().Unix(),
 		Key:    toggle,
 		Value:  value,
-		Index:  ruleIndex,
+		Index:  variationIndex,
 		Reason: reason,
 	})
 

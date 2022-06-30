@@ -412,12 +412,11 @@ type Function struct {
 }
 
 type ExpectResult struct {
-	Value          interface{} `json:"value"`
-	Reason         *string     `json:"reason"`
-	RuleIndex      *int        `json:"ruleIndex"`
-	ConditionIndex *int        `json:"conditionIndex"`
-	NoRuleIndex    *bool       `json:"noRuleIndex"`
-	Version        *uint64     `json:"version"`
+	Value       interface{} `json:"value"`
+	Reason      *string     `json:"reason"`
+	RuleIndex   *int        `json:"ruleIndex"`
+	NoRuleIndex *bool       `json:"noRuleIndex"`
+	Version     *uint64     `json:"version"`
 }
 
 type KeyValue struct {
