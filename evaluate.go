@@ -78,10 +78,11 @@ type evalParams struct {
 }
 
 type EvalDetail struct {
-	Value     interface{}
-	RuleIndex *int
-	Version   *uint64
-	Reason    string
+	Value          interface{}
+	RuleIndex      *int
+	VariationIndex *int
+	Version        *uint64
+	Reason         string
 }
 
 func saltHash(key string, salt string, bucketSize uint32) int {
@@ -120,11 +121,11 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 	}
 
 	if !t.Enabled {
-		return t.DisabledServe.selectVariation(params)
+		return t.DisabledServe.selectVariationValue(params)
 	}
 
 	for _, rule := range t.Rules {
-		serve, err := rule.serveVariation(params)
+		serve, _, err := rule.serveVariation(params)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +133,7 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 			return serve, nil
 		}
 	}
-	return t.DefaultServe.selectVariation(params)
+	return t.DefaultServe.selectVariationValue(params)
 }
 
 func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetail, error) {
@@ -143,7 +144,7 @@ func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 	}
 
 	if !t.Enabled {
-		serve, err := t.DisabledServe.selectVariation(params)
+		serve, index, err := t.DisabledServe.selectVariation(params)
 		if err != nil {
 			return EvalDetail{
 				Value:     nil,
@@ -153,34 +154,36 @@ func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 			}, err
 		}
 		return EvalDetail{
-			Value:     serve,
-			Version:   &t.Version,
-			RuleIndex: nil,
-			Reason:    "disabled",
+			Value:          serve,
+			VariationIndex: index,
+			Version:        &t.Version,
+			RuleIndex:      nil,
+			Reason:         "disabled",
 		}, nil
 	}
 
-	for index, rule := range t.Rules {
-		serve, err := rule.serveVariation(params)
+	for ruleIndex, rule := range t.Rules {
+		serve, vi, err := rule.serveVariation(params)
 		if err != nil {
 			return EvalDetail{
 				Value:     nil,
 				Version:   &t.Version,
-				RuleIndex: &index,
+				RuleIndex: &ruleIndex,
 				Reason:    err.Error(),
 			}, err
 		}
 		if serve != nil {
 			return EvalDetail{
-				Value:     serve,
-				RuleIndex: &index,
-				Version:   &t.Version,
-				Reason:    fmt.Sprintf("rule %d ", index),
+				Value:          serve,
+				VariationIndex: vi,
+				RuleIndex:      &ruleIndex,
+				Version:        &t.Version,
+				Reason:         fmt.Sprintf("rule %d ", ruleIndex),
 			}, nil
 		}
 	}
 
-	serve, err := t.DefaultServe.selectVariation(params)
+	serve, vi, err := t.DefaultServe.selectVariation(params)
 	if err != nil {
 		return EvalDetail{
 			Value:     nil,
@@ -190,30 +193,36 @@ func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 		}, err
 	}
 	return EvalDetail{
-		Value:     serve,
-		RuleIndex: nil,
-		Version:   &t.Version,
-		Reason:    "default",
+		Value:          serve,
+		VariationIndex: vi,
+		RuleIndex:      nil,
+		Version:        &t.Version,
+		Reason:         "default",
 	}, nil
 }
 
-func (s *Serve) selectVariation(params evalParams) (interface{}, error) {
-	var index int
+func (s *Serve) selectVariation(params evalParams) (interface{}, *int, error) {
+	var index *int = nil
 	if s.Select != nil {
-		index = *s.Select
+		index = s.Select
 	} else {
 		i, err := s.Split.findIndex(params)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		index = i
+		index = &i
 	}
 
 	length := len(params.Variations)
-	if index >= length {
-		return nil, fmt.Errorf("index %d overflow, variations count is %d", index, length)
+	if *index >= length {
+		return nil, nil, fmt.Errorf("index %d overflow, variations count is %d", index, length)
 	}
-	return params.Variations[index], nil
+	return params.Variations[*index], index, nil
+}
+
+func (s *Serve) selectVariationValue(params evalParams) (interface{}, error) {
+	val, _, err := s.selectVariation(params)
+	return val, err
 }
 
 func (s *Split) findIndex(params evalParams) (int, error) {
@@ -264,10 +273,10 @@ func (s *Split) hashKey(params evalParams) (string, error) {
 	return hashKey, nil
 }
 
-func (r *Rule) serveVariation(params evalParams) (interface{}, error) {
+func (r *Rule) serveVariation(params evalParams) (interface{}, *int, error) {
 	for _, c := range r.Conditions {
 		if !c.meet(params.User, params.Segments) {
-			return nil, nil
+			return nil, nil, nil
 		}
 	}
 	return r.Serve.selectVariation(params)

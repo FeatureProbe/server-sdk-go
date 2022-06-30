@@ -246,7 +246,7 @@ func TestSelectVariationFail(t *testing.T) {
 		Segments: nil,
 	}
 
-	v, err := serve.selectVariation(params)
+	v, _, err := serve.selectVariation(params)
 	assert.Equal(t, v, nil)
 	assert.Error(t, err)
 }
