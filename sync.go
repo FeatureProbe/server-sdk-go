@@ -74,10 +74,7 @@ func (s *Synchronizer) fetchRemoteRepo() {
 		fmt.Printf("%s\n", err)
 		return
 	}
-
-	if resp == nil || resp.Body == nil {
-		return
-	}
+	defer resp.Body.Close()
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	s.mu.Lock()

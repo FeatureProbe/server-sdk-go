@@ -68,6 +68,16 @@ func TestSyncInvalidUrl(t *testing.T) {
 	//TODO: check error
 }
 
+func TestSynchronizerWhenStopChanNil(t *testing.T) {
+	var repo2 Repository
+	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 100, "sdk_key", &repo2)
+	httpmock.ActivateNonDefault(&synchronizer.httpClient)
+	synchronizer.Start()
+	synchronizer.stopChan = nil
+	synchronizer.Stop()
+	assert.NotPanicsf(t, synchronizer.Stop, "stop occur panic")
+}
+
 func setup(t *testing.T) (Repository, string) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
