@@ -12,8 +12,7 @@ import (
 type EventRecorder struct {
 	auth           string
 	eventsUrl      string
-	flushMs        time.Duration
-	capacity       int64
+	flushInterval  time.Duration
 	incomingEvents []AccessEvent
 	packedData     []PackedData
 	httpClient     http.Client
@@ -59,14 +58,14 @@ type CountValue struct {
 	Value interface{} `json:"value"`
 }
 
-func NewEventRecorder(eventsUrl string, flushMs time.Duration, auth string) EventRecorder {
+func NewEventRecorder(eventsUrl string, flushInterval time.Duration, auth string) EventRecorder {
 	return EventRecorder{
 		auth:           auth,
 		eventsUrl:      eventsUrl,
-		flushMs:        flushMs,
+		flushInterval:  flushInterval,
 		incomingEvents: []AccessEvent{},
 		packedData:     []PackedData{},
-		httpClient:     newHttpClient(flushMs),
+		httpClient:     newHttpClient(flushInterval),
 	}
 }
 
@@ -99,7 +98,7 @@ func (e *EventRecorder) doFlush() {
 			e.mu.Unlock()
 		}
 
-		time.Sleep(e.flushMs * time.Millisecond)
+		time.Sleep(e.flushInterval * time.Millisecond)
 	}
 }
 
