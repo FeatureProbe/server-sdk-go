@@ -44,6 +44,7 @@ func (s *Synchronizer) doSynchronize() {
 			break
 		}
 		req.Header.Add("Authorization", s.auth)
+		req.Header.Add("User-Agent", USER_AGENT)
 		s.mu.Lock()
 		resp, err := s.httpClient.Do(req)
 		s.mu.Unlock()

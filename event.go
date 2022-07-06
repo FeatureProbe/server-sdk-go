@@ -93,6 +93,7 @@ func (e *EventRecorder) doFlush() {
 			}
 			req.Header.Add("Authorization", e.auth)
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Add("User-Agent", USER_AGENT)
 			e.mu.Lock()
 			_, _ = e.httpClient.Do(req)
 			e.mu.Unlock()

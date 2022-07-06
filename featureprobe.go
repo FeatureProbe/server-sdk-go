@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+var VERSION string = "1.1.0"
+var USER_AGENT string = "Go/" + VERSION
+
 type FeatureProbe struct {
 	Config   FPConfig
 	Repo     *Repository
