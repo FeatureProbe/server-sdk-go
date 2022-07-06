@@ -2,11 +2,12 @@ package featureprobe
 
 import (
 	"encoding/json"
-	"github.com/jarcoal/httpmock"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSync(t *testing.T) {
@@ -66,16 +67,6 @@ func TestSyncInvalidUrl(t *testing.T) {
 	httpmock.DeactivateAndReset()
 	synchronizer.mu.Unlock()
 	//TODO: check error
-}
-
-func TestSynchronizerWhenStopChanNil(t *testing.T) {
-	var repo2 Repository
-	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 100, "sdk_key", &repo2)
-	httpmock.ActivateNonDefault(&synchronizer.httpClient)
-	synchronizer.Start()
-	synchronizer.stopChan = nil
-	synchronizer.Stop()
-	assert.NotPanicsf(t, synchronizer.Stop, "stop occur panic")
 }
 
 func setup(t *testing.T) (Repository, string) {
