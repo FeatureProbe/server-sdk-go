@@ -12,13 +12,14 @@ import (
 func TestSync(t *testing.T) {
 	repo, jsonStr := setup(t)
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 100, "sdk_key", &repo2)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))
 
 	synchronizer.Start()
+	defer synchronizer.Stop()
 	time.Sleep(1 * time.Second)
 	count := httpmock.GetTotalCallCount()
 
@@ -32,13 +33,14 @@ func TestSync(t *testing.T) {
 
 func TestSyncInvalidJson(t *testing.T) {
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 100, "sdk_key", &repo2)
 
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, `{ `))
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 
 	synchronizer.Start()
+	defer synchronizer.Stop()
 	time.Sleep(1 * time.Second)
 	count := httpmock.GetTotalCallCount()
 
@@ -50,11 +52,12 @@ func TestSyncInvalidJson(t *testing.T) {
 
 func TestSyncInvalidUrl(t *testing.T) {
 	var repo2 Repository
-	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 1000, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 100, "sdk_key", &repo2)
 	_, jsonStr := setup(t)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	synchronizer.Start()
+	defer synchronizer.Stop()
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))
 
@@ -63,6 +66,16 @@ func TestSyncInvalidUrl(t *testing.T) {
 	httpmock.DeactivateAndReset()
 	synchronizer.mu.Unlock()
 	//TODO: check error
+}
+
+func TestSynchronizerWhenStopChanNil(t *testing.T) {
+	var repo2 Repository
+	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 100, "sdk_key", &repo2)
+	httpmock.ActivateNonDefault(&synchronizer.httpClient)
+	synchronizer.Start()
+	synchronizer.stopChan = nil
+	synchronizer.Stop()
+	assert.NotPanicsf(t, synchronizer.Stop, "stop occur panic")
 }
 
 func setup(t *testing.T) (Repository, string) {
