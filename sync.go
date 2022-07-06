@@ -50,6 +50,7 @@ func (s *Synchronizer) Start() {
 	})
 }
 
+
 func (s *Synchronizer) Stop() {
 	if s.stopChan == nil {
 		return
@@ -66,6 +67,7 @@ func (s *Synchronizer) fetchRemoteRepo() {
 		return
 	}
 	req.Header.Add("Authorization", s.auth)
+  req.Header.Add("User-Agent", USER_AGENT)
 	s.mu.Lock()
 	resp, err := s.httpClient.Do(req)
 	s.mu.Unlock()

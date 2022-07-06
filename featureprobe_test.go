@@ -368,7 +368,7 @@ func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
 	}
 }
 
-func setupFeatureProbe(t *testing.T) FeatureProbe {
+func setupFeatureProbe(t *testing.T) *FeatureProbe {
 	config := FPConfig{
 		RemoteUrl:       "",
 		TogglesUrl:      "",
@@ -380,7 +380,7 @@ func setupFeatureProbe(t *testing.T) FeatureProbe {
 
 	fp, err := NewFeatureProbe(config)
 	assert.Empty(t, err)
-	return fp
+	return &fp
 }
 
 type ContractTests struct {
