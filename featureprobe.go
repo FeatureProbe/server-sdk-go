@@ -14,8 +14,8 @@ var USER_AGENT string = "Go/" + VERSION
 type FeatureProbe struct {
 	Config   FPConfig
 	Repo     *Repository
-	Syncer   Synchronizer
-	Recorder EventRecorder
+	Syncer   *Synchronizer
+	Recorder *EventRecorder
 }
 
 type FPConfig struct {
@@ -75,8 +75,10 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	eventRecorder.Start()
 
 	return FeatureProbe{
-		Config: config,
-		Repo:   &repo,
+		Config:   config,
+		Repo:     &repo,
+		Syncer:   &toggleSyncer,
+		Recorder: &eventRecorder,
 	}, nil
 }
 
@@ -146,13 +148,15 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 		value = detail.Value
 	}
 
-	fp.Recorder.RecordAccess(AccessEvent{
-		Time:   time.Now().Unix(),
-		Key:    toggle,
-		Value:  value,
-		Index:  variationIndex,
-		Reason: reason,
-	})
+	if fp.Recorder != nil {
+		fp.Recorder.RecordAccess(AccessEvent{
+			Time:   time.Now().Unix(),
+			Key:    toggle,
+			Value:  value,
+			Index:  variationIndex,
+			Reason: reason,
+		})
+	}
 
 	return value, ruleIndex, version, reason
 }

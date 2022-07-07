@@ -19,6 +19,7 @@ type Synchronizer struct {
 	startOnce       sync.Once
 	stopOnce        sync.Once
 	stopChan        chan struct{}
+	ticker          *time.Ticker
 }
 
 func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, repo *Repository) Synchronizer {
@@ -34,15 +35,14 @@ func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, rep
 
 //TODO: create error message channel?
 func (s *Synchronizer) Start() {
-	ticker := time.NewTimer(s.RefreshInterval * time.Millisecond)
 	s.startOnce.Do(func() {
+		s.ticker = time.NewTicker(s.RefreshInterval * time.Millisecond)
 		go func() {
-			defer ticker.Stop()
 			for {
 				select {
 				case <-s.stopChan:
 					return
-				case <-ticker.C:
+				case <-s.ticker.C:
 					s.fetchRemoteRepo()
 				}
 			}
