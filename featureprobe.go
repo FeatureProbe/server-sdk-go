@@ -82,11 +82,27 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	}, nil
 }
 
-func newForTest(serverKey string, repo Repository) FeatureProbe {
+func newToggleForTest(key string, value interface{}) Toggle {
+	s := 0
+	return Toggle{
+		Key:           key,
+		Enabled:       true,
+		DefaultServe:  Serve{Select: &s},
+		DisabledServe: Serve{Select: &s},
+		Version:       0,
+		ForClient:     false,
+		Variations:    []interface{}{value},
+		Rules:         []Rule{},
+	}
+}
+
+func NewFeatureProbeForTest(toggles map[string]interface{}) FeatureProbe {
+	repo := Repository{}
+	repo.Toggles = map[string]Toggle{}
+	for key, value := range toggles {
+		repo.Toggles[key] = newToggleForTest(key, value)
+	}
 	return FeatureProbe{
-		Config: FPConfig{
-			ServerSdkKey: serverKey,
-		},
 		Repo: &repo,
 	}
 }
@@ -111,11 +127,15 @@ func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string
 
 func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) float64 {
 	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
-	r, ok := val.(float64)
+	i, ok := val.(int)
+	if ok {
+		return float64(i)
+	}
+	f, ok := val.(float64)
 	if !ok {
 		return defaultValue
 	}
-	return r
+	return f
 }
 
 func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) interface{} {

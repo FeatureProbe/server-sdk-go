@@ -50,7 +50,19 @@ You can use sdk to check which variation a particular user will receive for a gi
 val := fp.BoolValue("bool_toggle", user, true)
 ```
 
-## Testing
+### Step 4. Unit Testing (Optional)
+
+```go
+toggles := map[string]interface{}{}
+toggles["bool_toggle"] = true
+
+fp := NewFeatureProbeForTest(toggles)
+user := NewUser("user")
+
+assert.Equal(t, fp.BoolValue("bool_toggle", user, false), true)
+```
+
+## Testing SDK
 
 We have unified integration tests for all our SDKs. Integration test cases are added as submodules for each SDK repo. So
 be sure to pull submodules first to get the latest integration tests before running tests.

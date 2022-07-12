@@ -246,6 +246,22 @@ func TestOutOfIndexToggle(t *testing.T) {
 	assert.True(t, strings.Contains(detail4.Reason, "overflow"))
 }
 
+func TestUnitTestingForCaller(t *testing.T) {
+	toggles := map[string]interface{}{}
+	toggles["toggle1"] = 1.0
+	toggles["toggle2"] = true
+	toggles["toggle3"] = "red"
+	toggles["toggle4"] = []int{1, 2, 3}
+
+	fp := NewFeatureProbeForTest(toggles)
+	user := NewUser("user")
+
+	assert.Equal(t, fp.NumberValue("toggle1", user, 2), 1.0)
+	assert.Equal(t, fp.BoolValue("toggle2", user, false), true)
+	assert.Equal(t, fp.StrValue("toggle3", user, "blue"), "red")
+	assert.Equal(t, fp.JsonValue("toggle4", user, nil), []int{1, 2, 3})
+}
+
 func TestContract(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/server-sdk-specification/spec/toggle_simple_spec.json")
 	var tests ContractTests
@@ -256,7 +272,7 @@ func TestContract(t *testing.T) {
 		t.Log("scenario: ", scenario.Scenario)
 		assert.NotEmpty(t, scenario.Cases)
 
-		fp := newForTest("secret key", scenario.Fixture)
+		fp := FeatureProbe{Repo: &scenario.Fixture}
 
 		for _, Case := range scenario.Cases {
 			t.Log("  case: ", Case.Name)
