@@ -16,12 +16,7 @@ func TestNewFeatureProbe(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	config := FPConfig{
-		RemoteUrl:       "",
-		TogglesUrl:      "",
-		EventsUrl:       "",
-		ServerSdkKey:    "",
-		RefreshInterval: 1,
-		WaitFirstResp:   true,
+		RefreshInterval: 100,
 	}
 
 	_, err = NewFeatureProbe(config)
@@ -30,12 +25,7 @@ func TestNewFeatureProbe(t *testing.T) {
 
 func TestEvalNilRepo(t *testing.T) {
 	config := FPConfig{
-		RemoteUrl:       "",
-		TogglesUrl:      "",
-		EventsUrl:       "",
-		ServerSdkKey:    "",
-		RefreshInterval: 1,
-		WaitFirstResp:   true,
+		RefreshInterval: 100,
 	}
 	fp := FeatureProbe{
 		Repo:   nil,
@@ -223,31 +213,32 @@ func TestOutOfIndexToggle(t *testing.T) {
 
 	v := fp.BoolValue("overflow_bool_toggle", user, false)
 	detail := fp.BoolDetail("overflow_bool_toggle", user, false)
-	assert.Equal(t, v, false)
-	assert.Equal(t, detail.Value, false)
+	assert.Equal(t, false, v)
+	assert.Equal(t, false, detail.Value)
 	assert.True(t, strings.Contains(detail.Reason, "overflow"))
 
 	v2 := fp.StrValue("overflow_str_toggle", user, "1")
 	detail2 := fp.StrDetail("overflow_str_toggle", user, "1")
-	assert.Equal(t, v2, "1")
-	assert.Equal(t, detail2.Value, "1")
+	assert.Equal(t, "1", v2)
+	assert.Equal(t, "1", detail2.Value)
 	assert.True(t, strings.Contains(detail2.Reason, "overflow"))
 
 	v3 := fp.NumberValue("overflow_number_toggle", user, 1.0)
 	detail3 := fp.NumberDetail("overflow_number_toggle", user, 1.0)
-	assert.Equal(t, v3, 1.0)
-	assert.Equal(t, detail3.Value, 1.0)
+	assert.Equal(t, 1.0, v3)
+	assert.Equal(t, 1.0, detail3.Value)
 	assert.True(t, strings.Contains(detail3.Reason, "overflow"))
 
 	v4 := fp.JsonValue("overflow_json_toggle", user, nil)
 	detail4 := fp.JsonDetail("overflow_json_toggle", user, nil)
-	assert.Equal(t, v4, nil)
-	assert.Equal(t, detail4.Value, nil)
+	assert.Equal(t, nil, v4)
+	assert.Equal(t, nil, detail4.Value)
 	assert.True(t, strings.Contains(detail4.Reason, "overflow"))
 }
 
 func TestUnitTestingForCaller(t *testing.T) {
 	toggles := map[string]interface{}{}
+	toggles["toggle0"] = 0
 	toggles["toggle1"] = 1.0
 	toggles["toggle2"] = true
 	toggles["toggle3"] = "red"
@@ -256,10 +247,11 @@ func TestUnitTestingForCaller(t *testing.T) {
 	fp := NewFeatureProbeForTest(toggles)
 	user := NewUser("user")
 
-	assert.Equal(t, fp.NumberValue("toggle1", user, 2), 1.0)
-	assert.Equal(t, fp.BoolValue("toggle2", user, false), true)
-	assert.Equal(t, fp.StrValue("toggle3", user, "blue"), "red")
-	assert.Equal(t, fp.JsonValue("toggle4", user, nil), []int{1, 2, 3})
+	assert.Equal(t, 0.0, fp.NumberValue("toggle0", user, 2))
+	assert.Equal(t, 1.0, fp.NumberValue("toggle1", user, 2))
+	assert.Equal(t, true, fp.BoolValue("toggle2", user, false))
+	assert.Equal(t, "red", fp.StrValue("toggle3", user, "blue"))
+	assert.Equal(t, []int{1, 2, 3}, fp.JsonValue("toggle4", user, nil))
 }
 
 func TestContract(t *testing.T) {
@@ -386,12 +378,7 @@ func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
 
 func setupFeatureProbe(t *testing.T) *FeatureProbe {
 	config := FPConfig{
-		RemoteUrl:       "",
-		TogglesUrl:      "",
-		EventsUrl:       "",
-		ServerSdkKey:    "",
-		RefreshInterval: 1,
-		WaitFirstResp:   true,
+		RefreshInterval: 100,
 	}
 
 	fp, err := NewFeatureProbe(config)

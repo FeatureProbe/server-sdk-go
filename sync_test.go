@@ -2,6 +2,7 @@ package featureprobe
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -10,10 +11,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSync(t *testing.T) {
+func TestSyncWaitFirstResp(t *testing.T) {
 	repo, jsonStr := setup(t)
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 100, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
+
+	httpmock.ActivateNonDefault(&synchronizer.httpClient)
+	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
+		httpmock.NewStringResponder(200, jsonStr))
+
+	synchronizer.Start(true)
+	defer synchronizer.Stop()
+	time.Sleep(4 * time.Second)
+	count := httpmock.GetTotalCallCount()
+
+	assert.True(t, count > 2)
+	synchronizer.mu.Lock() // for go test -race
+	assert.Equal(t, repo, repo2)
+	httpmock.DeactivateAndReset()
+	synchronizer.mu.Unlock()
+}
+
+func TestSyncNotWaitFirstResp(t *testing.T) {
+	repo, jsonStr := setup(t)
+	var repo2 Repository
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
@@ -21,15 +43,15 @@ func TestSync(t *testing.T) {
 
 	synchronizer.Start()
 	defer synchronizer.Stop()
-	time.Sleep(1 * time.Second)
+	time.Sleep(4 * time.Second)
 	count := httpmock.GetTotalCallCount()
+	fmt.Println(count)
 
-	assert.True(t, count >= 1)
+	assert.True(t, count > 2)
 	synchronizer.mu.Lock() // for go test -race
 	assert.Equal(t, repo, repo2)
 	httpmock.DeactivateAndReset()
 	synchronizer.mu.Unlock()
-
 }
 
 func TestSyncInvalidJson(t *testing.T) {

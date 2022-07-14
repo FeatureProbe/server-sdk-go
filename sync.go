@@ -34,9 +34,11 @@ func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, rep
 }
 
 //TODO: create error message channel?
-func (s *Synchronizer) Start() {
+func (s *Synchronizer) Start(waitFirstResp ...bool) {
 	s.startOnce.Do(func() {
 		s.ticker = time.NewTicker(s.RefreshInterval * time.Millisecond)
+		respChan := make(chan struct{})
+		shouldWait := len(waitFirstResp) == 1 && waitFirstResp[0] == true
 		go func() {
 			for {
 				select {
@@ -44,9 +46,16 @@ func (s *Synchronizer) Start() {
 					return
 				case <-s.ticker.C:
 					s.fetchRemoteRepo()
+					if shouldWait {
+						respChan <- struct{}{}
+						shouldWait = false
+					}
 				}
 			}
 		}()
+		if shouldWait {
+			<-respChan
+		}
 	})
 }
 
@@ -81,6 +90,5 @@ func (s *Synchronizer) fetchRemoteRepo() {
 	s.mu.Unlock()
 	if err != nil {
 		fmt.Printf("%s\n", err)
-		return
 	}
 }

@@ -67,12 +67,11 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
 	}
 	timeout := time.Duration(config.RefreshInterval)
-	// TODO: wait response if config.WaitFirstResp is true
-	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
-	toggleSyncer.Start()
-
 	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
 	eventRecorder.Start()
+
+	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
+	toggleSyncer.Start(config.WaitFirstResp)
 
 	return FeatureProbe{
 		Config:   config,
