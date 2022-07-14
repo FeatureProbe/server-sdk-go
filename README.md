@@ -33,13 +33,14 @@ go get github.com/featureprobe/server-sdk-go
 After you install and import the SDK, create a single, shared instance of the FeatureProbe sdk.
 
 ```go
-config := FPConfig{
+
+config := featureprobe.FPConfig{
     RemoteUrl:       "https://127.0.0.1:4007",
     ServerSdkKey:    "serverSdkKey",
     RefreshInterval: 1000,
 }
 
-fp, err := NewFeatureProbe(config)
+fp, err := featureprobe.NewFeatureProbe(config)
 ```
 
 ### Step 3. Use the feature toggle
@@ -47,6 +48,7 @@ fp, err := NewFeatureProbe(config)
 You can use sdk to check which variation a particular user will receive for a given feature flag.
 
 ```go
+user := featureprobe.NewUser("user")
 val := fp.BoolValue("bool_toggle", user, true)
 ```
 
@@ -56,8 +58,8 @@ val := fp.BoolValue("bool_toggle", user, true)
 toggles := map[string]interface{}{}
 toggles["bool_toggle"] = true
 
-fp := NewFeatureProbeForTest(toggles)
-user := NewUser("user")
+fp := featureprobe.NewFeatureProbeForTest(toggles)
+user := featureprobe.NewUser("user")
 
 assert.Equal(t, fp.BoolValue("bool_toggle", user, false), true)
 ```
