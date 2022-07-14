@@ -9,7 +9,7 @@ import (
 
 func main() {
 	config := featureprobe.FPConfig{
-		RemoteUrl:       "http://127.0.0.1:4001",
+		RemoteUrl:       "http://127.0.0.1:4007",
 		ServerSdkKey:    "server-8ed48815ef044428826787e9a238b9c6a479f98c",
 		RefreshInterval: 1000, // ms
 		WaitFirstResp:   true,
