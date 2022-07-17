@@ -64,6 +64,8 @@ user := featureprobe.NewUser("user")
 assert.Equal(t, fp.BoolValue("bool_toggle", user, false), true)
 ```
 
+[Here is an example](https://github.com/FeatureProbe/server-sdk-go/tree/main/example)
+
 ## Testing SDK
 
 We have unified integration tests for all our SDKs. Integration test cases are added as submodules for each SDK repo. So
