@@ -10,7 +10,24 @@ This is alpha version and should not be considered ready for production use whil
 Feature Probe is an open source feature management service. This SDK is used to control features in Golang programs. This
 SDK is designed primarily for use in multi-user systems such as web servers and applications.
 
-## Getting started
+## Try Out Demo Code
+
+We provide a runnable demo code for you to understand how FeatureProbe SDK is used.
+
+1. Start FeatureProbe Service with docker composer. [How to](https://github.com/FeatureProbe/FeatureProbe#1-starting-featureprobe-service-with-docker-compose)
+2. Download this repo and run the demo program:
+```bash
+git clone https://github.com/FeatureProbe/server-sdk-go.git
+cd server-sdk-go
+go run example/main.go
+```
+3. Find the Demo code in [example](https://github.com/FeatureProbe/server-sdk-go/tree/main/example), 
+do some change and run the program again.
+```bash
+go run main.go
+```
+
+## Step-by-Step Guide
 
 In this guide we explain how to use feature toggles in a Golang application using FeatureProbe.
 
@@ -63,8 +80,6 @@ user := featureprobe.NewUser("user")
 
 assert.Equal(t, fp.BoolValue("bool_toggle", user, false), true)
 ```
-
-[Here is an example](https://github.com/FeatureProbe/server-sdk-go/tree/main/example)
 
 ## Testing SDK
 
