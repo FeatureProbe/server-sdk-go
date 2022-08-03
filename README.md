@@ -56,9 +56,9 @@ After you install and import the SDK, create a single, shared instance of the Fe
 ```go
 
 config := featureprobe.FPConfig{
-    RemoteUrl:       "https://127.0.0.1:4007",
-    ServerSdkKey:    "serverSdkKey",
-    RefreshInterval: 1000,
+    RemoteUrl:       "https://featureprobe.io/server",
+    ServerSdkKey:    "server-8ed48815ef044428826787e9a238b9c6a479f98c",
+    RefreshInterval: 2000,
 }
 
 fp, err := featureprobe.NewFeatureProbe(config)
@@ -94,6 +94,12 @@ be sure to pull submodules first to get the latest integration tests before runn
 git pull --recurse-submodules
 go test
 ```
+
+## Golang Docs
+
+[Doc home](https://pkg.go.dev/github.com/featureprobe/server-sdk-go)
+
+[Main functions](https://pkg.go.dev/github.com/featureprobe/server-sdk-go#FeatureProbe)
 
 ## Contributing
 

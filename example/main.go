@@ -9,7 +9,8 @@ import (
 
 func main() {
 	config := featureprobe.FPConfig{
-		RemoteUrl:       "http://127.0.0.1:4007",
+		RemoteUrl: "https://featureprobe.io/server",
+		// RemoteUrl:       "http://127.0.0.1.4007", // for local docker
 		ServerSdkKey:    "server-8ed48815ef044428826787e9a238b9c6a479f98c",
 		RefreshInterval: 1000, // ms
 		WaitFirstResp:   true,
@@ -19,10 +20,10 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	user := featureprobe.NewUser("user")
+	user := featureprobe.NewUser("user").With("city", "Paris")
 
 	for {
-		detail := fp.StrDetail("color_ab_test", user, "black")
+		detail := fp.NumberDetail("promotion_activity", user, 3.0)
 		fmt.Println(detail)
 		time.Sleep(time.Duration(5) * time.Second)
 	}
