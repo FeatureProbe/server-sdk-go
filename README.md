@@ -56,7 +56,8 @@ After you install and import the SDK, create a single, shared instance of the Fe
 ```go
 
 config := featureprobe.FPConfig{
-    RemoteUrl:       "https://featureprobe.io/server",
+    RemoteUrl: "https://featureprobe.io/server",
+	// RemoteUrl:       "http://127.0.0.1.4007", // for local docker
     ServerSdkKey:    "server-8ed48815ef044428826787e9a238b9c6a479f98c",
     RefreshInterval: 2000,
 }
