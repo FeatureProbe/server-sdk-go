@@ -70,7 +70,8 @@ fp, err := featureprobe.NewFeatureProbe(config)
 You can use sdk to check which variation a particular user will receive for a given feature flag.
 
 ```go
-user := featureprobe.NewUser("user")
+userId := /* unique user id in your business logic */
+user := featureprobe.NewUser(userId)
 val := fp.BoolValue("bool_toggle", user, true)
 ```
 
@@ -81,7 +82,7 @@ toggles := map[string]interface{}{}
 toggles["bool_toggle"] = true
 
 fp := featureprobe.NewFeatureProbeForTest(toggles)
-user := featureprobe.NewUser("user")
+user := featureprobe.NewUser("user_id")
 
 assert.Equal(t, fp.BoolValue("bool_toggle", user, false), true)
 ```

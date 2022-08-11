@@ -20,7 +20,8 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	user := featureprobe.NewUser("user").With("city", "Paris")
+	userId := "uniq_user_id" // unique user id in your business logic
+	user := featureprobe.NewUser(userId).With("city", "Paris")
 
 	for {
 		detail := fp.NumberDetail("promotion_activity", user, 3.0)
