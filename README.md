@@ -16,16 +16,18 @@ Reading the short [Basic Terms](https://github.com/FeatureProbe/FeatureProbe/blo
 
 ## Try Out Demo Code
 
-We provide a runnable demo code for you to understand how FeatureProbe SDK is used.
+We provide a runnable [demo](https://github.com/FeatureProbe/server-sdk-go/tree/main/example) for you to understand how FeatureProbe SDK is used.
 
-1. Start FeatureProbe Service with docker composer. [How to](https://github.com/FeatureProbe/FeatureProbe#1-starting-featureprobe-service-with-docker-compose)
+1. Use featureprobe.io online service. [Go to](https://featureprobe.io/login).
+   
+   Or setup FeatureProbe service with docker composer. [How to](https://github.com/FeatureProbe/FeatureProbe#1-starting-featureprobe-service-with-docker-compose)
 2. Download this repo and run the demo program:
 ```bash
 git clone https://github.com/FeatureProbe/server-sdk-go.git
 cd server-sdk-go
 go run example/main.go
 ```
-3. Find the Demo code in [example](https://github.com/FeatureProbe/server-sdk-go/tree/main/example), 
+3. Find the Demo code [here](https://github.com/FeatureProbe/server-sdk-go/tree/main/example), 
 do some change and run the program again.
 ```bash
 go run main.go
