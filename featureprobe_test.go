@@ -31,7 +31,7 @@ func TestEvalNilRepo(t *testing.T) {
 		Repo:   nil,
 		Config: config,
 	}
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().StableRollout("key11").With("city", "4")
 
 	val := fp.BoolValue("bool_toggle", user, true)
 	assert.Equal(t, true, val)
@@ -60,7 +60,7 @@ func TestEval(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().StableRollout("key11").With("city", "4")
 
 	fp := setupFeatureProbe(t)
 	fp.setRepoForTest(repo)
@@ -92,7 +92,7 @@ func TestEvalTypeMismatch(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().StableRollout("key11").With("city", "4")
 	fp := setupFeatureProbe(t)
 	fp.setRepoForTest(repo)
 
@@ -118,7 +118,7 @@ func TestEvalNotExist(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().With("city", "4")
 	fp := setupFeatureProbe(t)
 	fp.setRepoForTest(repo)
 
@@ -209,7 +209,7 @@ func TestOutOfIndexToggle(t *testing.T) {
 	fp := setupFeatureProbe(t)
 	fp.setRepoForTest(repo)
 
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().With("city", "4")
 
 	v := fp.BoolValue("overflow_bool_toggle", user, false)
 	detail := fp.BoolDetail("overflow_bool_toggle", user, false)
@@ -245,7 +245,7 @@ func TestUnitTestingForCaller(t *testing.T) {
 	toggles["toggle4"] = []int{1, 2, 3}
 
 	fp := NewFeatureProbeForTest(toggles)
-	user := NewUser("user")
+	user := NewUser()
 
 	assert.Equal(t, 0.0, fp.NumberValue("toggle0", user, 2))
 	assert.Equal(t, 1.0, fp.NumberValue("toggle1", user, 2))
@@ -268,7 +268,7 @@ func TestContract(t *testing.T) {
 
 		for _, Case := range scenario.Cases {
 			t.Log("  case: ", Case.Name)
-			user := NewUser(Case.User.Key)
+			user := NewUser().StableRollout(Case.User.Key)
 			for _, kv := range Case.User.CustomValues {
 				user = user.With(kv.Key, kv.Value)
 			}

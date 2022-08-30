@@ -1,15 +1,36 @@
 package featureprobe
 
+import (
+	"strconv"
+	"time"
+)
+
 type FPUser struct {
-	Key   string
+	key   string
 	attrs map[string]string
 }
 
-func NewUser(key string) FPUser {
+func NewUser() FPUser {
 	return FPUser{
-		Key:   key,
 		attrs: map[string]string{},
 	}
+}
+
+func (u FPUser) StableRollout(key string) FPUser {
+	u.key = key
+	return u
+}
+
+func (u FPUser) Key() string {
+	if len(u.key) == 0 {
+		u.key = u.generateKey()
+	}
+	return u.key
+}
+
+func (u FPUser) generateKey() string {
+	currnet := time.Now().UnixMicro()
+	return strconv.FormatInt(currnet, 10)
 }
 
 func (u FPUser) With(key string, value string) FPUser {
