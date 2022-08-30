@@ -16,5 +16,5 @@ func TestFPUser(t *testing.T) {
 
 func TestAutoGenerateUserKey(t *testing.T) {
 	var user = NewUser()
-	assert.Equal(t, 16, len(user.Key()))
+	assert.Equal(t, 19, len(user.Key()))
 }

@@ -29,7 +29,7 @@ func (u FPUser) Key() string {
 }
 
 func (u FPUser) generateKey() string {
-	currnet := time.Now().UnixMicro()
+	currnet := time.Now().UnixNano()
 	return strconv.FormatInt(currnet, 10)
 }
 
