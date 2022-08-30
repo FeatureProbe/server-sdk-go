@@ -29,8 +29,8 @@ func (u FPUser) Key() string {
 }
 
 func (u FPUser) generateKey() string {
-	currnet := time.Now().UnixNano()
-	return strconv.FormatInt(currnet, 10)
+	current := time.Now().UnixNano()
+	return strconv.FormatInt(current, 10)
 }
 
 func (u FPUser) With(key string, value string) FPUser {
