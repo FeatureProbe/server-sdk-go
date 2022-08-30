@@ -260,14 +260,14 @@ func (s *Split) hashKey(params evalParams) (string, error) {
 	var hashKey string
 	user := params.User
 	if len(s.BucketBy) == 0 {
-		hashKey = user.Key
+		hashKey = user.Key()
 	} else {
 		bucketBy := s.BucketBy
 		key := user.Get(bucketBy)
 		if len(key) != 0 {
 			hashKey = key
 		} else {
-			return "", fmt.Errorf("user with id: %s does not have attribute named: [%s]", user.Key, key)
+			return "", fmt.Errorf("user with id: %s does not have attribute named: [%s]", user.Key(), key)
 		}
 	}
 	return hashKey, nil

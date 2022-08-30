@@ -28,7 +28,7 @@ func TestMatchInSegmentCondition(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "4")
+	user := NewUser().With("city", "4")
 	toggle := repo.Toggles["json_toggle"]
 	detail, _ := toggle.evalDetail(user, repo.Segments)
 	v, ok := detail.Value.(map[string]interface{})
@@ -42,7 +42,7 @@ func TestMatchNotInSegmentCondition(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "100")
+	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["not_in_segment"]
 	detail, _ := toggle.evalDetail(user, repo.Segments)
 	v, ok := detail.Value.(map[string]interface{})
@@ -56,7 +56,7 @@ func TestNotMatchInSegmentCondition(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key11").With("city", "100")
+	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["json_toggle"]
 	_, _ = toggle.Eval(user, repo.Segments)
 	detail, _ := toggle.evalDetail(user, repo.Segments)
@@ -71,7 +71,7 @@ func TestNoSegments(t *testing.T) {
 		Objects:   nil,
 	}
 
-	user := NewUser("key11").With("city", "100")
+	user := NewUser().With("city", "100")
 	r := c.matchSegmentCondition(user, "is in", nil)
 	assert.False(t, r)
 
@@ -89,7 +89,7 @@ func TestSegmentsUnknownPredicate(t *testing.T) {
 
 	segments := map[string]Segment{}
 
-	user := NewUser("key11").With("city", "100")
+	user := NewUser().StableRollout("key11").With("city", "100")
 	r := c.matchSegmentCondition(user, "unknown", segments)
 	assert.False(t, r)
 }
@@ -100,27 +100,27 @@ func TestMultiConditions(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key").With("city", "1").With("os", "linux")
+	user := NewUser().StableRollout("key11").With("city", "1").With("os", "linux")
 	toggle := repo.Toggles["multi_condition_toggle"]
 	r, _ := toggle.Eval(user, repo.Segments)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
-	user = NewUser("key").With("city", "1").With("os", "linux")
+	user = NewUser().StableRollout("key").With("city", "1").With("os", "linux")
 	toggle = repo.Toggles["multi_condition_toggle"]
 	detail, _ := toggle.evalDetail(user, repo.Segments)
 	v, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
-	user = NewUser("key").With("os", "linux")
+	user = NewUser().StableRollout("key").With("os", "linux")
 	detail, _ = toggle.evalDetail(user, repo.Segments)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, detail.Reason, "default")
 
-	user = NewUser("key").With("city", "1")
+	user = NewUser().StableRollout("key").With("city", "1")
 	detail, _ = toggle.evalDetail(user, repo.Segments)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
@@ -133,7 +133,7 @@ func TestDisabledToggle(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key").With("city", "100")
+	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["disabled_toggle"]
 	detail, _ := toggle.evalDetail(user, repo.Segments)
 	assert.Equal(t, detail.Reason, "disabled")
@@ -155,10 +155,9 @@ func TestDistributionNoSalt(t *testing.T) {
 		Salt:         "",
 	}
 
-	user := NewUser("key").With("name", "key")
+	user := NewUser().StableRollout("key").With("name", "key")
 
 	params := evalParams{
-		Key:        "not care",
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -181,10 +180,9 @@ func TestDistributionInExactBucket(t *testing.T) {
 		Salt:         "salt",
 	}
 
-	user := NewUser("key").With("name", "key")
+	user := NewUser().StableRollout("key").With("name", "key")
 
 	params := evalParams{
-		Key:        "not care",
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -206,10 +204,9 @@ func TestDistributionInNoneBucket(t *testing.T) {
 		Salt:         "salt",
 	}
 
-	user := NewUser("key").With("name", "key")
+	user := NewUser().StableRollout("key").With("name", "key")
 
 	params := evalParams{
-		Key:        "not care",
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -235,10 +232,9 @@ func TestSelectVariationFail(t *testing.T) {
 		Select: nil,
 	}
 
-	user := NewUser("key")
+	user := NewUser().StableRollout("key")
 
 	params := evalParams{
-		Key:  "not care",
 		User: user,
 		Variations: []interface{}{
 			"a", "b",
@@ -261,7 +257,7 @@ func TestMatchIsOneOf(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "world")
+	user := NewUser().With("name", "world")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -277,7 +273,7 @@ func TestNotMatchIsOneOf(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "not_in")
+	user := NewUser().With("name", "not_in")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -293,7 +289,7 @@ func TestUserMissKeyIsNotOneOf(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care")
+	user := NewUser()
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -309,7 +305,7 @@ func TestMatchIsNotAnyOf(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "not in")
+	user := NewUser().With("name", "not in")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -325,7 +321,7 @@ func TestMatchEndsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob world")
+	user := NewUser().With("name", "bob world")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -341,7 +337,7 @@ func TestNotMatchEndsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob")
+	user := NewUser().With("name", "bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -357,7 +353,7 @@ func TestMatchNotEndsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob")
+	user := NewUser().With("name", "bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -373,7 +369,7 @@ func TestNotMatchNotEndsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob world")
+	user := NewUser().With("name", "bob world")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -389,7 +385,7 @@ func TestMatchStartsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "world bob")
+	user := NewUser().With("name", "world bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -405,7 +401,7 @@ func TestNotMatchStartsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob")
+	user := NewUser().With("name", "bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -421,7 +417,7 @@ func TestMatchNotStartsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "bob")
+	user := NewUser().With("name", "bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -437,7 +433,7 @@ func TestNotMatchNotStartsWith(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "world bob")
+	user := NewUser().With("name", "world bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -453,7 +449,7 @@ func TestMatchCondition(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice world bob")
+	user := NewUser().With("name", "alice world bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -469,7 +465,7 @@ func TestNotMatchContainsCondition(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice bob")
+	user := NewUser().With("name", "alice bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -485,7 +481,7 @@ func TestMatchNotContainsCondition(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice world bob")
+	user := NewUser().With("name", "alice world bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -501,7 +497,7 @@ func TestMatchRegex(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice world bob")
+	user := NewUser().With("name", "alice world bob")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -517,7 +513,7 @@ func TestMatchRegexFirstObject(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice orld bob hello3")
+	user := NewUser().With("name", "alice orld bob hello3")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -533,7 +529,7 @@ func TestNotMatchRegex(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "alice orld bob hello")
+	user := NewUser().With("name", "alice orld bob hello")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.True(t, r)
@@ -549,7 +545,7 @@ func TestInvalidRegex(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "\\\\\\")
+	user := NewUser().With("name", "\\\\\\")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -565,7 +561,7 @@ func TestUnknownPredicate(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("name", "123")
+	user := NewUser().With("name", "123")
 
 	r := condition.matchStringCondition(user, condition.Predicate)
 	assert.False(t, r)
@@ -582,7 +578,7 @@ func TestDatetimeBefore(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care")
+	user := NewUser()
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
@@ -606,7 +602,7 @@ func TestDatetimeAfter(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care")
+	user := NewUser()
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
@@ -631,7 +627,7 @@ func TestDatetimeInvalidCustomValue(t *testing.T) {
 		Objects:   []string{},
 	}
 
-	user := NewUser("not care").With("datetime", "a")
+	user := NewUser().With("datetime", "a")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -646,7 +642,7 @@ func TestDatetimeInvalid(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care")
+	user := NewUser()
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -661,7 +657,7 @@ func TestDatetimeUnknownPredicate(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care")
+	user := NewUser()
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -676,19 +672,19 @@ func TestNumberEqual(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "1")
+	user := NewUser().With("price", "1")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -703,19 +699,19 @@ func TestNumberNotEqual(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "1")
+	user := NewUser().With("price", "1")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -730,19 +726,19 @@ func TestNumberGreaterThan(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "1")
+	user := NewUser().With("price", "1")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -757,23 +753,23 @@ func TestNumberGreaterThanOrEqualTo(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "0")
+	user := NewUser().With("price", "0")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "1")
+	user = NewUser().With("price", "1")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -788,23 +784,23 @@ func TestNumberLessThan(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "0")
+	user := NewUser().With("price", "0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "1")
+	user = NewUser().With("price", "1")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -819,23 +815,23 @@ func TestNumberLessThanOrEqualTo(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "0")
+	user := NewUser().With("price", "0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "1")
+	user = NewUser().With("price", "1")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "2")
+	user = NewUser().With("price", "2")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "3")
+	user = NewUser().With("price", "3")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("price", "4")
+	user = NewUser().With("price", "4")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -850,11 +846,11 @@ func TestNumberInvalid(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "a")
+	user := NewUser().With("price", "a")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care")
+	user = NewUser()
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
@@ -867,7 +863,7 @@ func TestNumberInvalid(t *testing.T) {
 		},
 	}
 
-	user = NewUser("not care").With("price", "1")
+	user = NewUser().With("price", "1")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -882,7 +878,7 @@ func TestNumberUnknownPredicate(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("price", "0")
+	user := NewUser().With("price", "0")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -897,19 +893,19 @@ func TestSemVerEqual(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "1.0.0")
+	user := NewUser().With("version", "1.0.0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "2.0.0")
+	user = NewUser().With("version", "2.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -924,19 +920,19 @@ func TestSemVerNotEqual(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "1.0.0")
+	user := NewUser().With("version", "1.0.0")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "2.0.0")
+	user = NewUser().With("version", "2.0.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -951,19 +947,19 @@ func TestSemVerGreaterThan(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "1.0.0")
+	user := NewUser().With("version", "1.0.0")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "2.0.0")
+	user = NewUser().With("version", "2.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -978,19 +974,19 @@ func TestSemVerGreaterThanOrEqualTo(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "1.0.0")
+	user := NewUser().With("version", "1.0.0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "2.0.0")
+	user = NewUser().With("version", "2.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 }
@@ -1005,23 +1001,23 @@ func TestSemVerLessThan(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "0.1.0")
+	user := NewUser().With("version", "0.1.0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.0.0")
+	user = NewUser().With("version", "1.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "3.0.0")
+	user = NewUser().With("version", "3.0.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -1036,23 +1032,23 @@ func TestSemVerLessThanOrEqualTo(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "0.1.0")
+	user := NewUser().With("version", "0.1.0")
 	r := condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.0.0")
+	user = NewUser().With("version", "1.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "1.1.0")
+	user = NewUser().With("version", "1.1.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "2.0.0")
+	user = NewUser().With("version", "2.0.0")
 	r = condition.meet(user, nil)
 	assert.True(t, r)
 
-	user = NewUser("not care").With("version", "4.1.0")
+	user = NewUser().With("version", "4.1.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -1067,20 +1063,20 @@ func TestSemVerInvalid(t *testing.T) {
 		},
 	}
 
-	user := NewUser("not care").With("version", "0.1.0")
+	user := NewUser().With("version", "0.1.0")
 	r := condition.meet(user, nil)
 	assert.False(t, r)
 
 	condition.Predicate = "?"
-	user = NewUser("not care").With("version", "0.1.0")
+	user = NewUser().With("version", "0.1.0")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care")
+	user = NewUser()
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 
-	user = NewUser("not care").With("version", "invalid_version")
+	user = NewUser().With("version", "invalid_version")
 	r = condition.meet(user, nil)
 	assert.False(t, r)
 }
@@ -1092,7 +1088,7 @@ func TestUnknownConditionType(t *testing.T) {
 		Predicate: "name",
 		Objects:   nil,
 	}
-	u := NewUser("key")
+	u := NewUser()
 	b := c.meet(u, nil)
 	assert.False(t, b)
 }
@@ -1103,7 +1099,7 @@ func TestMatchEqualString(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	user := NewUser("key").With("city", "1")
+	user := NewUser().With("city", "1")
 	toggle := repo.Toggles["json_toggle"]
 	r, _ := toggle.Eval(user, repo.Segments)
 	v, ok := r.(map[string]interface{})
@@ -1146,7 +1142,7 @@ func TestDisabledOutOfRangeToggle(t *testing.T) {
         }`
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
-	user := NewUser("key")
+	user := NewUser()
 	_, err = toggle.Eval(user, nil)
 	assert.Error(t, err)
 
@@ -1193,7 +1189,7 @@ func TestEnabledOutOfRangeToggle(t *testing.T) {
         }`
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
-	user := NewUser("key").With("city", "1")
+	user := NewUser().With("city", "1")
 	_, err = toggle.Eval(user, nil)
 	assert.Error(t, err)
 
@@ -1224,7 +1220,7 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
         }`
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
-	user := NewUser("key").With("city", "1")
+	user := NewUser().With("city", "1")
 	_, err = toggle.Eval(user, nil)
 	assert.Error(t, err)
 
