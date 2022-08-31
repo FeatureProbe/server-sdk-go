@@ -17,15 +17,19 @@ type EventRecorder struct {
 	packedData     []PackedData
 	httpClient     http.Client
 	mu             sync.Mutex
-	once           sync.Once
+	wg             sync.WaitGroup
+	startOnce      sync.Once
+	stopOnce       sync.Once
+	stopChan       chan struct{}
+	ticker         *time.Ticker
 }
 
 type AccessEvent struct {
 	Time    int64       `json:"time"`
 	Key     string      `json:"key"`
 	Value   interface{} `json:"value"`
-	Index   *int        `json:"index,omitempty"`
-	Version *int        `json:"version,omitempty"`
+	Index   *int        `json:"index"`
+	Version *uint64     `json:"version"`
 	Reason  string      `json:"reason"`
 }
 
@@ -41,16 +45,16 @@ type Access struct {
 }
 
 type ToggleCounter struct {
-	Value   interface{} `json:"Value"`
-	Version *int        `json:"version,omitempty"`
-	Index   *int        `json:"index,omitempty"`
-	Count   int         `json:"Count"`
+	Value   interface{} `json:"value"`
+	Version *uint64     `json:"version"`
+	Index   *int        `json:"index"`
+	Count   int         `json:"count"`
 }
 
 type Variation struct {
-	Key     string `json:"key"`
-	Index   *int   `json:"index"`
-	Version *int   `json:"version"`
+	Key     string  `json:"key"`
+	Index   *int    `json:"index"`
+	Version *uint64 `json:"version"`
 }
 
 type CountValue struct {
@@ -66,40 +70,50 @@ func NewEventRecorder(eventsUrl string, flushInterval time.Duration, auth string
 		incomingEvents: []AccessEvent{},
 		packedData:     []PackedData{},
 		httpClient:     newHttpClient(flushInterval),
+		stopChan:       make(chan struct{}),
 	}
 }
 
 func (e *EventRecorder) Start() {
-	e.once.Do(func() {
-		go e.doFlush()
+	e.wg.Add(1)
+	e.startOnce.Do(func() {
+		e.ticker = time.NewTicker(e.flushInterval * time.Millisecond)
+		go func() {
+			for {
+				select {
+				case <-e.stopChan:
+					e.doFlush()
+					e.wg.Done()
+					return
+				case <-e.ticker.C:
+					e.doFlush()
+				}
+			}
+		}()
 	})
 }
 
 func (e *EventRecorder) doFlush() {
-	for {
-		events := make([]AccessEvent, 0)
-		e.mu.Lock()
-		events, e.incomingEvents = e.incomingEvents, events
-		e.mu.Unlock()
-
-		if len(events) != 0 {
-			packedData := e.buildPackedData(events)
-			body, _ := json.Marshal(packedData)
-
-			req, err := http.NewRequest(http.MethodPost, e.eventsUrl, bytes.NewBuffer(body))
-			if err != nil {
-				fmt.Printf("%s\n", err)
-				break
-			}
-			req.Header.Add("Authorization", e.auth)
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Add("User-Agent", USER_AGENT)
-			e.mu.Lock()
-			_, _ = e.httpClient.Do(req)
-			e.mu.Unlock()
-		}
-
-		time.Sleep(e.flushInterval * time.Millisecond)
+	events := make([]AccessEvent, 0)
+	e.mu.Lock()
+	events, e.incomingEvents = e.incomingEvents, events
+	e.mu.Unlock()
+	if len(events) == 0 {
+		return
+	}
+	packedData := e.buildPackedData(events)
+	body, _ := json.Marshal(packedData)
+	req, err := http.NewRequest(http.MethodPost, e.eventsUrl, bytes.NewBuffer(body))
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	req.Header.Add("Authorization", e.auth)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("User-Agent", USER_AGENT)
+	_, err = e.httpClient.Do(req)
+	if err != nil {
+		fmt.Printf("Report event fails: %s\n", err)
 	}
 }
 
@@ -162,4 +176,13 @@ func (e *EventRecorder) RecordAccess(event AccessEvent) {
 	e.mu.Lock()
 	e.incomingEvents = append(e.incomingEvents, event)
 	e.mu.Unlock()
+}
+
+func (e *EventRecorder) Stop() {
+	if e.stopChan != nil {
+		e.stopOnce.Do(func() {
+			close(e.stopChan)
+		})
+	}
+	e.wg.Wait()
 }
