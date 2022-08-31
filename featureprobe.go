@@ -169,7 +169,7 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 
 	if fp.Recorder != nil {
 		fp.Recorder.RecordAccess(AccessEvent{
-			Time:    time.Now().UnixMilli(),
+			Time:    time.Now().UnixNano() / 1e6,
 			Key:     toggle,
 			Value:   value,
 			Index:   variationIndex,
