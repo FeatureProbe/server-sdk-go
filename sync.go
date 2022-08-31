@@ -38,7 +38,7 @@ func (s *Synchronizer) Start(waitFirstResp ...bool) {
 	s.startOnce.Do(func() {
 		s.ticker = time.NewTicker(s.RefreshInterval * time.Millisecond)
 		respChan := make(chan struct{})
-		shouldWait := len(waitFirstResp) == 1 && waitFirstResp[0] == true
+		shouldWait := len(waitFirstResp) == 1 && waitFirstResp[0]
 		go func() {
 			for {
 				select {

@@ -169,11 +169,12 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 
 	if fp.Recorder != nil {
 		fp.Recorder.RecordAccess(AccessEvent{
-			Time:   time.Now().Unix(),
-			Key:    toggle,
-			Value:  value,
-			Index:  variationIndex,
-			Reason: reason,
+			Time:    time.Now().UnixMilli(),
+			Key:     toggle,
+			Value:   value,
+			Index:   variationIndex,
+			Version: version,
+			Reason:  reason,
 		})
 	}
 
@@ -244,5 +245,17 @@ func newHttpClient(timeout time.Duration) http.Client {
 			TLSHandshakeTimeout:   2 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+	}
+}
+
+func (fp *FeatureProbe) Close() {
+	if fp.Syncer != nil {
+		fp.Syncer.Stop()
+	}
+	if fp.Repo != nil {
+		fp.Repo.Clear()
+	}
+	if fp.Recorder != nil {
+		fp.Recorder.Stop()
 	}
 }

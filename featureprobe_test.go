@@ -254,6 +254,16 @@ func TestUnitTestingForCaller(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3}, fp.JsonValue("toggle4", user, nil))
 }
 
+func TestCloseClient(t *testing.T) {
+	config := FPConfig{
+		RefreshInterval: 100,
+	}
+	fp, _ := NewFeatureProbe(config)
+
+	fp.Close()
+	assert.Equal(t, 0, len(fp.Repo.Toggles))
+}
+
 func TestContract(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/server-sdk-specification/spec/toggle_simple_spec.json")
 	var tests ContractTests

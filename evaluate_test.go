@@ -1227,3 +1227,16 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
 	_, err = toggle.evalDetail(user, nil)
 	assert.Error(t, err)
 }
+
+func TestClearRepo(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	json.Unmarshal(bytes, &repo)
+	assert.True(t, len(repo.Segments) > 0)
+	assert.True(t, len(repo.Toggles) > 0)
+
+	repo.Clear()
+
+	assert.Equal(t, 0, len(repo.Segments))
+	assert.Equal(t, 0, len(repo.Toggles))
+}
