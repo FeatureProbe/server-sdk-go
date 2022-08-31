@@ -506,3 +506,8 @@ func (r *Rule) allow(user FPUser) bool {
 	}
 	return false
 }
+
+func (repo *Repository) Clear() {
+	repo.Toggles = make(map[string]Toggle)
+	repo.Segments = make(map[string]Segment)
+}
