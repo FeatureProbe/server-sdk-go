@@ -118,6 +118,7 @@ func (t *Toggle) Eval(user FPUser, segments map[string]Segment) (interface{}, er
 		User:       user,
 		Segments:   segments,
 		Variations: t.Variations,
+		Key:        t.Key,
 	}
 
 	if !t.Enabled {
@@ -141,6 +142,7 @@ func (t *Toggle) evalDetail(user FPUser, segments map[string]Segment) (EvalDetai
 		User:       user,
 		Segments:   segments,
 		Variations: t.Variations,
+		Key:        t.Key,
 	}
 
 	if !t.Enabled {
@@ -240,20 +242,24 @@ func (s *Split) findIndex(params evalParams) (int, error) {
 
 	bucketIndex := saltHash(hashKey, salt, 10000)
 
-	variation := -1
-	for v, d := range s.Distribution {
-		for _, r := range d {
-			if r.Lower <= bucketIndex && r.Upper > bucketIndex {
-				variation = v
-			}
-		}
-	}
+	variation := s.getVariation(bucketIndex)
 
 	if variation == -1 {
 		return variation, fmt.Errorf("not find hash_bucket in distribution")
 	}
 
 	return variation, nil
+}
+
+func (s *Split) getVariation(bucketIndex int) int {
+	for v, d := range s.Distribution {
+		for _, r := range d {
+			if r.Lower <= bucketIndex && bucketIndex < r.Upper {
+				return v
+			}
+		}
+	}
+	return -1
 }
 
 func (s *Split) hashKey(params evalParams) (string, error) {
