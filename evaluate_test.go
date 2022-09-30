@@ -177,7 +177,7 @@ func TestDistributionInExactBucket(t *testing.T) {
 	split := Split{
 		Distribution: distribution,
 		BucketBy:     "name",
-		Salt:         "salt",
+		Salt:         "",
 	}
 
 	user := NewUser().StableRollout("key").With("name", "key")
@@ -186,6 +186,7 @@ func TestDistributionInExactBucket(t *testing.T) {
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
+		Key:        "salt",
 	}
 
 	index, _ := split.findIndex(params)
