@@ -15,11 +15,7 @@ func TestNewFeatureProbe(t *testing.T) {
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
-	config := FPConfig{
-		RefreshInterval: 100,
-	}
-
-	_, err = NewFeatureProbe(config)
+	_, err = NewTestClient(WithRefreshInterval(100))
 	assert.Empty(t, err)
 }
 
@@ -255,10 +251,7 @@ func TestUnitTestingForCaller(t *testing.T) {
 }
 
 func TestCloseClient(t *testing.T) {
-	config := FPConfig{
-		RefreshInterval: 100,
-	}
-	fp, _ := NewFeatureProbe(config)
+	fp, _ := NewTestClient(WithRefreshInterval(100))
 
 	fp.Close()
 	assert.Equal(t, 0, len(fp.Repo.Toggles))
@@ -326,6 +319,27 @@ func TestContract(t *testing.T) {
 	}
 }
 
+func TestClientWithOption(t *testing.T) {
+	fp, err := NewFeatureProbe("http://fakeRemoteUrl/", "fakeSdkKey", WithWaitFirstResp(false), WithRefreshInterval(100))
+	assert.NoError(t, err)
+	assert.False(t, fp.Config.WaitFirstResp)
+	assert.Equal(t, "http://fakeRemoteUrl/", fp.Config.RemoteUrl)
+	assert.Equal(t, "fakeSdkKey", fp.Config.ServerSdkKey)
+	assert.Equal(t, 100, fp.Config.RefreshInterval)
+	assert.False(t, fp.Config.WaitFirstResp)
+	assert.Equal(t, "http://fakeRemoteUrl/api/events", fp.Config.EventsUrl)
+	assert.Equal(t, "http://fakeRemoteUrl/api/server-sdk/toggles", fp.Config.TogglesUrl)
+}
+
+func TestClientOptionDefaultValue(t *testing.T) {
+	fp, err := NewFeatureProbe("http://fakeRemoteUrl/", "fakeSdkKey")
+	assert.NoError(t, err)
+	assert.True(t, fp.Config.WaitFirstResp)
+	assert.Equal(t, "http://fakeRemoteUrl/", fp.Config.RemoteUrl)
+	assert.Equal(t, "fakeSdkKey", fp.Config.ServerSdkKey)
+	assert.Equal(t, 2000, fp.Config.RefreshInterval)
+}
+
 func assertBoolDetail(t *testing.T, Case Case, r FPBoolDetail) {
 	if Case.ExpectResult.Reason != nil {
 		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
@@ -387,11 +401,7 @@ func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
 }
 
 func setupFeatureProbe(t *testing.T) *FeatureProbe {
-	config := FPConfig{
-		RefreshInterval: 100,
-	}
-
-	fp, err := NewFeatureProbe(config)
+	fp, err := NewTestClient(WithRefreshInterval(100))
 	assert.Empty(t, err)
 	return &fp
 }

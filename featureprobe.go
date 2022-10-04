@@ -55,26 +55,63 @@ type FPJsonDetail struct {
 	Reason    string
 }
 
-func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
+type Option func(fpConfig *FPConfig)
+
+func WithTogglesUrl(url string) Option {
+	return func(fpConfig *FPConfig) {
+		fpConfig.TogglesUrl = url
+	}
+}
+
+func EventsUrl(url string) Option {
+	return func(fpConfig *FPConfig) {
+		fpConfig.EventsUrl = url
+	}
+}
+
+func WithRefreshInterval(interval int) Option {
+	return func(fpConfig *FPConfig) {
+		fpConfig.RefreshInterval = interval
+	}
+}
+
+func WithWaitFirstResp(wait bool) Option {
+	return func(fpConfig *FPConfig) {
+		fpConfig.WaitFirstResp = wait
+	}
+}
+
+func NewTestClient(opts ...Option) (FeatureProbe, error) {
+	return NewFeatureProbe("", "", opts...)
+}
+
+func NewFeatureProbe(remoteUrl, severSdkKey string, opts ...Option) (FeatureProbe, error) {
 	repo := Repository{}
-	if !strings.HasSuffix(config.RemoteUrl, "/") {
-		config.RemoteUrl += "/"
+	if !strings.HasSuffix(remoteUrl, "/") {
+		remoteUrl += "/"
 	}
-	if len(config.EventsUrl) == 0 {
-		config.EventsUrl = config.RemoteUrl + "api/events"
+	fpConfig := FPConfig{
+		RemoteUrl:       remoteUrl,
+		TogglesUrl:      remoteUrl + "api/server-sdk/toggles",
+		EventsUrl:       remoteUrl + "api/events",
+		ServerSdkKey:    severSdkKey,
+		RefreshInterval: 2000,
+		WaitFirstResp:   true,
 	}
-	if len(config.TogglesUrl) == 0 {
-		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
+
+	for _, opt := range opts {
+		opt(&fpConfig)
 	}
-	timeout := time.Duration(config.RefreshInterval)
-	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
+
+	timeout := time.Duration(fpConfig.RefreshInterval)
+	eventRecorder := NewEventRecorder(fpConfig.EventsUrl, timeout, fpConfig.ServerSdkKey)
 	eventRecorder.Start()
 
-	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
-	toggleSyncer.Start(config.WaitFirstResp)
+	toggleSyncer := NewSynchronizer(fpConfig.TogglesUrl, timeout, fpConfig.ServerSdkKey, &repo)
+	toggleSyncer.Start(fpConfig.WaitFirstResp)
 
 	return FeatureProbe{
-		Config:   config,
+		Config:   fpConfig,
 		Repo:     &repo,
 		Syncer:   &toggleSyncer,
 		Recorder: &eventRecorder,
