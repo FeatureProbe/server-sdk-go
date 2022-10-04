@@ -63,7 +63,7 @@ func WithTogglesUrl(url string) Option {
 	}
 }
 
-func EventsUrl(url string) Option {
+func WithEventsUrl(url string) Option {
 	return func(fpConfig *FPConfig) {
 		fpConfig.EventsUrl = url
 	}
