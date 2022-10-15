@@ -57,15 +57,15 @@ type FPJsonDetail struct {
 
 type Option func(fpConfig *FPConfig)
 
-func WithTogglesUrl(url string) Option {
+func WithTogglesUri(uri string) Option {
 	return func(fpConfig *FPConfig) {
-		fpConfig.TogglesUrl = url
+		fpConfig.TogglesUrl = fpConfig.RemoteUrl + uri
 	}
 }
 
-func WithEventsUrl(url string) Option {
+func WithEventsUri(uri string) Option {
 	return func(fpConfig *FPConfig) {
-		fpConfig.EventsUrl = url
+		fpConfig.EventsUrl = fpConfig.RemoteUrl + uri
 	}
 }
 

@@ -320,15 +320,15 @@ func TestContract(t *testing.T) {
 }
 
 func TestClientWithOption(t *testing.T) {
-	fp, err := NewFeatureProbe("http://fakeRemoteUrl/", "fakeSdkKey", WithWaitFirstResp(false), WithRefreshInterval(100))
+	fp, err := NewFeatureProbe("http://fakeRemoteUrl/", "fakeSdkKey", WithEventsUri("eventUrl"), WithTogglesUri("toggleUrl"), WithWaitFirstResp(false), WithRefreshInterval(100))
 	assert.NoError(t, err)
 	assert.False(t, fp.Config.WaitFirstResp)
 	assert.Equal(t, "http://fakeRemoteUrl/", fp.Config.RemoteUrl)
 	assert.Equal(t, "fakeSdkKey", fp.Config.ServerSdkKey)
 	assert.Equal(t, 100, fp.Config.RefreshInterval)
 	assert.False(t, fp.Config.WaitFirstResp)
-	assert.Equal(t, "http://fakeRemoteUrl/api/events", fp.Config.EventsUrl)
-	assert.Equal(t, "http://fakeRemoteUrl/api/server-sdk/toggles", fp.Config.TogglesUrl)
+	assert.Equal(t, "http://fakeRemoteUrl/eventUrl", fp.Config.EventsUrl)
+	assert.Equal(t, "http://fakeRemoteUrl/toggleUrl", fp.Config.TogglesUrl)
 }
 
 func TestClientOptionDefaultValue(t *testing.T) {
