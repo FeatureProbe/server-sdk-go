@@ -12,7 +12,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	user := featureprobe.NewUser("testUSerKey").With("userId", "00001")
+	user := featureprobe.NewUser("").With("userId", "00001")
 
 	detail := fp.BoolDetail("campaign_allow_list", user, false)
 	fmt.Println("Result =>", detail.Value)
