@@ -253,6 +253,9 @@ func TestUnitTestingForCaller(t *testing.T) {
 	assert.Equal(t, "red", fp.StrValue("toggle3", user, "blue"))
 	assert.Equal(t, []int{1, 2, 3}, fp.JsonValue("toggle4", user, nil))
 }
+func TestClientInitialized(t *testing.T) {
+
+}
 
 func TestCloseClient(t *testing.T) {
 	config := FPConfig{

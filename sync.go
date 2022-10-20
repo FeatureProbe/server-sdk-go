@@ -10,16 +10,18 @@ import (
 )
 
 type Synchronizer struct {
-	auth            string
-	togglesUrl      string
-	RefreshInterval time.Duration
-	repository      *Repository
-	httpClient      http.Client
-	mu              sync.Mutex
-	startOnce       sync.Once
-	stopOnce        sync.Once
-	stopChan        chan struct{}
-	ticker          *time.Ticker
+	auth               string
+	togglesUrl         string
+	RefreshInterval    time.Duration
+	repository         *Repository
+	httpClient         http.Client
+	mu                 sync.Mutex
+	startOnce          sync.Once
+	stopOnce           sync.Once
+	setInitializedOnce sync.Once
+	isInitialized      bool
+	stopChan           chan struct{}
+	ticker             *time.Ticker
 }
 
 func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, repo *Repository) Synchronizer {
@@ -33,30 +35,38 @@ func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, rep
 	}
 }
 
-//TODO: create error message channel?
-func (s *Synchronizer) Start(waitFirstResp ...bool) {
+func (s *Synchronizer) Start(ready chan<- struct{}) {
+	var readyOnce sync.Once
+	notifyReady := func() {
+		readyOnce.Do(func() {
+			close(ready)
+		})
+	}
+
 	s.startOnce.Do(func() {
 		s.ticker = time.NewTicker(s.RefreshInterval * time.Millisecond)
-		respChan := make(chan struct{})
-		shouldWait := len(waitFirstResp) == 1 && waitFirstResp[0]
 		go func() {
 			for {
 				select {
 				case <-s.stopChan:
 					return
 				case <-s.ticker.C:
-					s.fetchRemoteRepo()
-					if shouldWait {
-						respChan <- struct{}{}
-						shouldWait = false
+					err := s.fetchRemoteRepo()
+					if err == nil {
+						s.setInitializedOnce.Do(func() {
+							// first sync success
+							s.isInitialized = true
+							notifyReady()
+						})
 					}
 				}
 			}
 		}()
-		if shouldWait {
-			<-respChan
-		}
 	})
+}
+
+func (s *Synchronizer) Initialized() bool {
+	return s.isInitialized
 }
 
 func (s *Synchronizer) Stop() {
@@ -67,11 +77,11 @@ func (s *Synchronizer) Stop() {
 	}
 }
 
-func (s *Synchronizer) fetchRemoteRepo() {
+func (s *Synchronizer) fetchRemoteRepo() error {
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
 	if err != nil {
 		fmt.Printf("%s\n", err)
-		return
+		return err
 	}
 	req.Header.Add("Authorization", s.auth)
 	req.Header.Add("User-Agent", USER_AGENT)
@@ -80,7 +90,7 @@ func (s *Synchronizer) fetchRemoteRepo() {
 	s.mu.Unlock()
 	if err != nil {
 		fmt.Printf("%s\n", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -91,4 +101,5 @@ func (s *Synchronizer) fetchRemoteRepo() {
 	if err != nil {
 		fmt.Printf("%s\n", err)
 	}
+	return err
 }
