@@ -73,6 +73,7 @@ func (s *Synchronizer) Stop() {
 	if s.stopChan != nil {
 		s.stopOnce.Do(func() {
 			close(s.stopChan)
+			s.isInitialized = false
 		})
 	}
 }

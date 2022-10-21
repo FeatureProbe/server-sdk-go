@@ -253,8 +253,14 @@ func TestUnitTestingForCaller(t *testing.T) {
 	assert.Equal(t, "red", fp.StrValue("toggle3", user, "blue"))
 	assert.Equal(t, []int{1, 2, 3}, fp.JsonValue("toggle4", user, nil))
 }
-func TestClientInitialized(t *testing.T) {
 
+func TestClientInitializedTimeout(t *testing.T) {
+	config := FPConfig{
+		RefreshInterval: 100,
+		StartWait:       300,
+	}
+	fp, _ := NewFeatureProbe(config)
+	assert.Equal(t, false, fp.Initialized())
 }
 
 func TestCloseClient(t *testing.T) {
