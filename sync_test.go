@@ -2,7 +2,6 @@ package featureprobe
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSyncWaitFirstResp(t *testing.T) {
+func TestSyncInitSuccess(t *testing.T) {
 	repo, jsonStr := setup(t)
 	var repo2 Repository
 	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
@@ -20,36 +19,35 @@ func TestSyncWaitFirstResp(t *testing.T) {
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))
 
-	synchronizer.Start(true)
+	synchronizer.Start(make(chan<- struct{}))
 	defer synchronizer.Stop()
 	time.Sleep(4 * time.Second)
 	count := httpmock.GetTotalCallCount()
 
 	assert.True(t, count > 2)
+	assert.True(t, synchronizer.Initialized())
+
 	synchronizer.mu.Lock() // for go test -race
 	assert.Equal(t, repo, repo2)
 	httpmock.DeactivateAndReset()
 	synchronizer.mu.Unlock()
 }
 
-func TestSyncNotWaitFirstResp(t *testing.T) {
-	repo, jsonStr := setup(t)
+func TestSyncInitFailed(t *testing.T) {
 	var repo2 Repository
 	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
-		httpmock.NewStringResponder(200, jsonStr))
+		httpmock.NewStringResponder(500, ``))
 
-	synchronizer.Start()
+	synchronizer.Start(make(chan<- struct{}))
 	defer synchronizer.Stop()
 	time.Sleep(4 * time.Second)
-	count := httpmock.GetTotalCallCount()
-	fmt.Println(count)
 
-	assert.True(t, count > 2)
+	assert.False(t, synchronizer.Initialized())
+
 	synchronizer.mu.Lock() // for go test -race
-	assert.Equal(t, repo, repo2)
 	httpmock.DeactivateAndReset()
 	synchronizer.mu.Unlock()
 }
@@ -62,7 +60,7 @@ func TestSyncInvalidJson(t *testing.T) {
 		httpmock.NewStringResponder(200, `{ `))
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 
-	synchronizer.Start()
+	synchronizer.Start(make(chan<- struct{}))
 	defer synchronizer.Stop()
 	time.Sleep(1 * time.Second)
 	count := httpmock.GetTotalCallCount()
@@ -79,7 +77,7 @@ func TestSyncInvalidUrl(t *testing.T) {
 	_, jsonStr := setup(t)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
-	synchronizer.Start()
+	synchronizer.Start(make(chan<- struct{}))
 	defer synchronizer.Stop()
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
 		httpmock.NewStringResponder(200, jsonStr))

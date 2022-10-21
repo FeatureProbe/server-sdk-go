@@ -1,6 +1,8 @@
 package featureprobe
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -24,7 +26,7 @@ type FPConfig struct {
 	EventsUrl       string
 	ServerSdkKey    string
 	RefreshInterval int
-	WaitFirstResp   bool
+	StartWait       int
 }
 
 type FPBoolDetail struct {
@@ -57,6 +59,8 @@ type FPJsonDetail struct {
 
 func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	repo := Repository{}
+	ready := make(chan struct{}, 1)
+
 	if !strings.HasSuffix(config.RemoteUrl, "/") {
 		config.RemoteUrl += "/"
 	}
@@ -70,15 +74,31 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
 	eventRecorder.Start()
 
-	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
-	toggleSyncer.Start(config.WaitFirstResp)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(config.StartWait)*time.Millisecond)
+	defer cancelFunc()
 
-	return FeatureProbe{
+	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
+	toggleSyncer.Start(ready)
+
+	client := FeatureProbe{
 		Config:   config,
 		Repo:     &repo,
 		Syncer:   &toggleSyncer,
 		Recorder: &eventRecorder,
-	}, nil
+	}
+	if config.StartWait > 0 {
+		for {
+			select {
+			case <-ready:
+				return client, nil
+			case <-ctx.Done():
+				go func() { <-ready }()
+				return client, errors.New("timeout encountered waiting for FeatureProbe client initialization")
+			}
+		}
+	}
+	go func() { <-ready }()
+	return client, nil
 }
 
 func newToggleForTest(key string, value interface{}) Toggle {
@@ -246,6 +266,10 @@ func newHttpClient(timeout time.Duration) http.Client {
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
+}
+
+func (client *FeatureProbe) Initialized() bool {
+	return client.Syncer.Initialized()
 }
 
 func (fp *FeatureProbe) Close() {
