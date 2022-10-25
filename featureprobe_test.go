@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,10 +18,10 @@ func TestNewFeatureProbe(t *testing.T) {
 
 	config := FPConfig{
 		RefreshInterval: 100,
+		Repo:            &repo,
 	}
-
-	_, err = NewFeatureProbe(config)
-	assert.Empty(t, err)
+	client := NewFeatureProbe(config)
+	assert.True(t, client.Initialized())
 }
 
 func TestEvalNilRepo(t *testing.T) {
@@ -62,8 +63,7 @@ func TestEval(t *testing.T) {
 
 	user := NewUser().StableRollout("key11").With("city", "4")
 
-	fp := setupFeatureProbe(t)
-	fp.setRepoForTest(repo)
+	fp := setupFeatureProbe(t, repo)
 
 	val := fp.BoolValue("bool_toggle", user, true)
 	assert.Equal(t, false, val)
@@ -93,8 +93,7 @@ func TestEvalTypeMismatch(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	user := NewUser().StableRollout("key11").With("city", "4")
-	fp := setupFeatureProbe(t)
-	fp.setRepoForTest(repo)
+	fp := setupFeatureProbe(t, repo)
 
 	val := fp.BoolValue("number_toggle", user, true)
 	assert.Equal(t, true, val)
@@ -119,8 +118,7 @@ func TestEvalNotExist(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	user := NewUser().With("city", "4")
-	fp := setupFeatureProbe(t)
-	fp.setRepoForTest(repo)
+	fp := setupFeatureProbe(t, repo)
 
 	val := fp.BoolValue("not_exist_toggle", user, true)
 	assert.Equal(t, true, val)
@@ -206,8 +204,7 @@ func TestOutOfIndexToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &repo)
 	assert.Equal(t, nil, err)
 
-	fp := setupFeatureProbe(t)
-	fp.setRepoForTest(repo)
+	fp := setupFeatureProbe(t, repo)
 
 	user := NewUser().With("city", "4")
 
@@ -256,18 +253,19 @@ func TestUnitTestingForCaller(t *testing.T) {
 
 func TestClientInitializedTimeout(t *testing.T) {
 	config := FPConfig{
-		RefreshInterval: 100,
-		StartWait:       300,
+		RemoteUrl:       "http://not-found/server",
+		RefreshInterval: 3 * time.Second,
+		StartWait:       3 * time.Second,
 	}
-	fp, _ := NewFeatureProbe(config)
+	fp := NewFeatureProbe(config)
 	assert.Equal(t, false, fp.Initialized())
 }
 
 func TestCloseClient(t *testing.T) {
 	config := FPConfig{
-		RefreshInterval: 100,
+		RefreshInterval: 100 * time.Millisecond,
 	}
-	fp, _ := NewFeatureProbe(config)
+	fp := NewFeatureProbe(config)
 
 	fp.Close()
 	assert.Equal(t, 0, len(fp.Repo.Toggles))
@@ -395,13 +393,13 @@ func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
 	}
 }
 
-func setupFeatureProbe(t *testing.T) *FeatureProbe {
+func setupFeatureProbe(t *testing.T, repo Repository) *FeatureProbe {
 	config := FPConfig{
-		RefreshInterval: 100,
+		RefreshInterval: 1 * time.Second,
+		Repo:            &repo,
 	}
 
-	fp, err := NewFeatureProbe(config)
-	assert.Empty(t, err)
+	fp := NewFeatureProbe(config)
 	return &fp
 }
 

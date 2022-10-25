@@ -2,7 +2,6 @@ package featureprobe
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,8 +24,9 @@ type FPConfig struct {
 	TogglesUrl      string
 	EventsUrl       string
 	ServerSdkKey    string
-	RefreshInterval int
-	StartWait       int
+	RefreshInterval time.Duration
+	StartWait       time.Duration
+	Repo            *Repository
 }
 
 type FPBoolDetail struct {
@@ -57,27 +57,24 @@ type FPJsonDetail struct {
 	Reason    string
 }
 
-func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
-	repo := Repository{}
+func NewFeatureProbe(config FPConfig) FeatureProbe {
 	ready := make(chan struct{}, 1)
 
-	if !strings.HasSuffix(config.RemoteUrl, "/") {
-		config.RemoteUrl += "/"
-	}
-	if len(config.EventsUrl) == 0 {
-		config.EventsUrl = config.RemoteUrl + "api/events"
-	}
-	if len(config.TogglesUrl) == 0 {
-		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
-	}
-	timeout := time.Duration(config.RefreshInterval)
+	setServerUrls(&config)
+	timeout := config.RefreshInterval
 	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
 	eventRecorder.Start()
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(config.StartWait)*time.Millisecond)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), config.StartWait)
 	defer cancelFunc()
-
-	toggleSyncer := NewSynchronizer(config.TogglesUrl, timeout, config.ServerSdkKey, &repo)
+	toggleSyncer := Synchronizer{}
+	repo := Repository{}
+	if config.Repo == nil {
+		toggleSyncer = NewSynchronizer(config.TogglesUrl, config.RefreshInterval, config.ServerSdkKey, &repo)
+	} else {
+		repo = *config.Repo
+		toggleSyncer = NewCustomRepoSynchronizer(config.Repo)
+	}
 	toggleSyncer.Start(ready)
 
 	client := FeatureProbe{
@@ -90,15 +87,28 @@ func NewFeatureProbe(config FPConfig) (FeatureProbe, error) {
 		for {
 			select {
 			case <-ready:
-				return client, nil
+				return client
 			case <-ctx.Done():
 				go func() { <-ready }()
-				return client, errors.New("timeout encountered waiting for FeatureProbe client initialization")
+				// log. timeout encountered waiting for FeatureProbe client initialization
+				return client
 			}
 		}
 	}
 	go func() { <-ready }()
-	return client, nil
+	return client
+}
+
+func setServerUrls(config *FPConfig) {
+	if !strings.HasSuffix(config.RemoteUrl, "/") {
+		config.RemoteUrl += "/"
+	}
+	if len(config.EventsUrl) == 0 {
+		config.EventsUrl = config.RemoteUrl + "api/events"
+	}
+	if len(config.TogglesUrl) == 0 {
+		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
+	}
 }
 
 func newToggleForTest(key string, value interface{}) Toggle {
@@ -244,10 +254,6 @@ func (fp *FeatureProbe) JsonDetail(toggle string, user FPUser, defaultValue inte
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
 	detail := FPJsonDetail{Value: value, RuleIndex: ruleIndex, Version: version, Reason: reason}
 	return detail
-}
-
-func (fp *FeatureProbe) setRepoForTest(repo Repository) {
-	fp.Repo = &repo
 }
 
 func newHttpClient(timeout time.Duration) http.Client {

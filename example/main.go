@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	featureprobe "github.com/featureprobe/server-sdk-go"
 )
@@ -12,15 +13,12 @@ func main() {
 		RemoteUrl: "https://featureprobe.io/server",
 		// RemoteUrl:       "http://127.0.0.1.4007", // for local docker
 		ServerSdkKey:    "server-bd2f4bf8ec431370d4f9c99b57d33d1f74375962",
-		RefreshInterval: 2000, // ms
-		StartWait:       5000,
+		RefreshInterval: 2 * time.Second,
+		StartWait:       5 * time.Second,
 	}
-	fp, err := featureprobe.NewFeatureProbe(config)
-	if fp.Initialized() {
-		fmt.Println("SDK successfully initialized")
-	} else {
-		fmt.Println("SDK failed to initialize!", err)
-		return
+	fp := featureprobe.NewFeatureProbe(config)
+	if !fp.Initialized() {
+		fmt.Println("SDK failed to initialize!")
 	}
 	user := featureprobe.NewUser().With("userId", "00001")
 

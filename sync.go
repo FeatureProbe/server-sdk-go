@@ -22,6 +22,7 @@ type Synchronizer struct {
 	isInitialized      bool
 	stopChan           chan struct{}
 	ticker             *time.Ticker
+	enablePolling      bool
 }
 
 func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, repo *Repository) Synchronizer {
@@ -32,6 +33,15 @@ func NewSynchronizer(url string, RefreshInterval time.Duration, auth string, rep
 		httpClient:      newHttpClient(RefreshInterval),
 		repository:      repo,
 		stopChan:        make(chan struct{}),
+		enablePolling:   true,
+	}
+}
+
+func NewCustomRepoSynchronizer(repo *Repository) Synchronizer {
+	return Synchronizer{
+		repository:    repo,
+		stopChan:      make(chan struct{}),
+		enablePolling: false,
 	}
 }
 
@@ -42,9 +52,13 @@ func (s *Synchronizer) Start(ready chan<- struct{}) {
 			close(ready)
 		})
 	}
-
+	if !s.enablePolling {
+		s.isInitialized = true
+		notifyReady()
+		return
+	}
 	s.startOnce.Do(func() {
-		s.ticker = time.NewTicker(s.RefreshInterval * time.Millisecond)
+		s.ticker = time.NewTicker(s.RefreshInterval)
 		go func() {
 			for {
 				select {
@@ -80,10 +94,12 @@ func (s *Synchronizer) Stop() {
 
 func (s *Synchronizer) fetchRemoteRepo() error {
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
+
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		return err
 	}
+
 	req.Header.Add("Authorization", s.auth)
 	req.Header.Add("User-Agent", USER_AGENT)
 	s.mu.Lock()
