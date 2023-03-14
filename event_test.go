@@ -10,70 +10,24 @@ import (
 
 func TestEventFlush(t *testing.T) {
 	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
-	version1 := uint64(1)
-	version2 := uint64(2)
-	variationIndex1 := 0
-	variationIndex2 := 1
 	ruleIndex := 0
-	recorder.RecordAccess(AccessEvent{
-		Kind:           "access",
-		Time:           time.Now().Unix(),
-		User:           "some_user",
-		Key:            "some_toggle",
-		Value:          "some_value",
-		VariationIndex: &variationIndex1,
-		RuleIndex:      &ruleIndex,
-		Version:        &version1,
-		Reason:         "default",
-	}, true)
-
-	recorder.RecordAccess(AccessEvent{
-		Kind:           "access",
-		Time:           time.Now().Unix(),
-		User:           "some_user",
-		Key:            "some_toggle",
-		Value:          "some_value",
-		VariationIndex: &variationIndex1,
-		RuleIndex:      &ruleIndex,
-		Version:        &version1,
-		Reason:         "default",
-	}, true)
-
-	recorder.RecordAccess(AccessEvent{
-		Kind:           "access",
-		Time:           time.Now().Unix(),
-		User:           "some_user",
-		Key:            "some_toggle",
-		Value:          "some_value",
-		VariationIndex: &variationIndex1,
-		RuleIndex:      &ruleIndex,
-		Version:        &version1,
-		Reason:         "default",
-	}, false)
-
-	recorder.RecordAccess(AccessEvent{
-		Kind:           "access",
-		Time:           time.Now().Unix(),
-		User:           "some_user",
-		Key:            "some_toggle",
-		Value:          "some_value2",
-		VariationIndex: &variationIndex2,
-		RuleIndex:      &ruleIndex,
-		Version:        &version1,
-		Reason:         "default",
-	}, true)
-
-	recorder.RecordAccess(AccessEvent{
-		Kind:           "access",
-		Time:           time.Now().Unix(),
-		User:           "some_user",
-		Key:            "some_toggle2",
-		Value:          "some_value",
-		VariationIndex: &variationIndex2,
-		RuleIndex:      &ruleIndex,
-		Version:        &version2,
-		Reason:         "default",
-	}, true)
+	versions := []uint64{1, 1, 1, 1, 2}
+	variations := []int{0, 0, 0, 1, 1}
+	trackAccessEvents := []bool{true, true, false, true, true}
+	keys := []string{"some_toggle", "some_toggle", "some_toggle", "some_toggle", "some_toggle2"}
+	for index, _ := range versions {
+		recorder.RecordAccess(AccessEvent{
+			Kind:           "access",
+			Time:           time.Now().Unix(),
+			User:           "some_user",
+			Key:            keys[index],
+			Value:          "some_value",
+			VariationIndex: &variations[index],
+			RuleIndex:      &ruleIndex,
+			Version:        &versions[index],
+			Reason:         "default",
+		}, trackAccessEvents[index])
+	}
 
 	recorder.RecordCustom(CustomEvent{
 		Kind:  "custom",
