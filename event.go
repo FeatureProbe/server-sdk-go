@@ -25,16 +25,15 @@ type EventRecorder struct {
 }
 
 type AccessEvent struct {
-	Kind              string      `json:"kind"`
-	Time              int64       `json:"time"`
-	User              string      `json:"user"`
-	Key               string      `json:"key"`
-	Value             interface{} `json:"value"`
-	VariationIndex    *int        `json:"variationIndex"`
-	RuleIndex         *int        `json:"ruleIndex"`
-	Version           *uint64     `json:"version"`
-	Reason            string      `json:"reason"`
-	TrackAccessEvents bool        `json:"-"`
+	Kind           string      `json:"kind"`
+	Time           int64       `json:"time"`
+	User           string      `json:"user"`
+	Key            string      `json:"key"`
+	Value          interface{} `json:"value"`
+	VariationIndex *int        `json:"variationIndex"`
+	RuleIndex      *int        `json:"ruleIndex"`
+	Version        *uint64     `json:"version"`
+	Reason         string      `json:"reason"`
 }
 
 type CustomEvent struct {
@@ -171,9 +170,9 @@ func (e *EventRecorder) addAccess(event AccessEvent) {
 	}
 }
 
-func (e *EventRecorder) RecordAccess(event AccessEvent) {
+func (e *EventRecorder) RecordAccess(event AccessEvent, trackAccessEvents bool) {
 	e.mu.Lock()
-	if event.TrackAccessEvents {
+	if trackAccessEvents {
 		e.incomingEvents = append(e.incomingEvents, event)
 	}
 	e.addAccess(event)

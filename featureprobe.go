@@ -211,17 +211,16 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 
 	if fp.Recorder != nil && variationIndex != nil {
 		fp.Recorder.RecordAccess(AccessEvent{
-			Kind:              "access",
-			Time:              time.Now().UnixNano() / 1e6,
-			User:              user.Key(),
-			Key:               toggle,
-			Value:             value,
-			VariationIndex:    variationIndex,
-			RuleIndex:         ruleIndex,
-			Version:           version,
-			Reason:            reason,
-			TrackAccessEvents: t.TrackAccessEvents,
-		})
+			Kind:           "access",
+			Time:           time.Now().UnixNano() / 1e6,
+			User:           user.Key(),
+			Key:            toggle,
+			Value:          value,
+			VariationIndex: variationIndex,
+			RuleIndex:      ruleIndex,
+			Version:        version,
+			Reason:         reason,
+		}, t.TrackAccessEvents)
 	}
 
 	return value, ruleIndex, version, reason
