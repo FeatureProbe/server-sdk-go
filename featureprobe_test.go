@@ -2,7 +2,9 @@ package featureprobe
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -141,6 +143,34 @@ func TestEvalNotExist(t *testing.T) {
 	assert.Equal(t, nil, detail3.Value)
 }
 
+func Test(t *testing.T) {
+	config := FPConfig{
+		RemoteUrl: "http://featureprobe-df.intra.xiaojukeji.com/server",
+		// RemoteUrl:       "http://127.0.0.1.4007", // for local docker
+		ServerSdkKey:    "server-9a0629780a208a936ec05edb33b2e2b3d78b588b",
+		RefreshInterval: 10 * time.Second,
+		StartWait:       5 * time.Second,
+	}
+	fp := NewFeatureProbe(config)
+	if !fp.Initialized() {
+		fmt.Println("SDK failed to initialize!")
+	}
+	for i := 1; i <= 1000; i++ {
+		timestamp := time.Now().Unix() / 1e6
+		str := strconv.FormatInt(timestamp, 4)
+		user := NewUser().With("userId", "00001").StableRollout(str)
+		detail := fp.BoolDetail("test_go", user, false)
+		data, _ := json.Marshal(detail)
+		fmt.Println(string(data))
+		time.Sleep(2 * time.Second)
+		value := 99.9
+		if i > 10 {
+			fp.track("test_go", user, nil)
+			fp.track("test_go", user, &value)
+		}
+	}
+}
+
 func TestOutOfIndexToggle(t *testing.T) {
 	jsonStr := `
 {
@@ -269,6 +299,18 @@ func TestCloseClient(t *testing.T) {
 
 	fp.Close()
 	assert.Equal(t, 0, len(fp.Repo.Toggles))
+}
+
+func TestTrack(t *testing.T) {
+	config := FPConfig{
+		RefreshInterval: 100 * time.Millisecond,
+	}
+	fp := NewFeatureProbe(config)
+	user := NewUser()
+	value := 99.9
+	fp.track("some_event", user, &value)
+	fp.track("some_event2", user, nil)
+	assert.True(t, len(fp.Recorder.incomingEvents) == 2)
 }
 
 func TestContract(t *testing.T) {
