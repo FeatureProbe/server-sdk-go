@@ -24,14 +24,16 @@ type Toggles struct {
 }
 
 type Toggle struct {
-	Key           string        `json:"key"`
-	Enabled       bool          `json:"enabled"`
-	Version       uint64        `json:"version"`
-	ForClient     bool          `json:"forClient"`
-	DisabledServe Serve         `json:"disabledServe"`
-	DefaultServe  Serve         `json:"defaultServe"`
-	Rules         []Rule        `json:"rules"`
-	Variations    []interface{} `json:"variations"`
+	Key               string        `json:"key"`
+	Enabled           bool          `json:"enabled"`
+	TrackAccessEvents bool          `json:"trackAccessEvents"`
+	LastModified      uint64        `json:"lastModified"`
+	Version           uint64        `json:"version"`
+	ForClient         bool          `json:"forClient"`
+	DisabledServe     Serve         `json:"disabledServe"`
+	DefaultServe      Serve         `json:"defaultServe"`
+	Rules             []Rule        `json:"rules"`
+	Variations        []interface{} `json:"variations"`
 }
 
 type Segment struct {
