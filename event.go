@@ -131,7 +131,6 @@ func (e *EventRecorder) doFlush() {
 		return
 	}
 	body, _ := json.Marshal(packedData)
-	fmt.Println(string(body))
 	req, err := http.NewRequest(http.MethodPost, e.eventsUrl, bytes.NewBuffer(body))
 	if err != nil {
 		fmt.Printf("%s\n", err)
