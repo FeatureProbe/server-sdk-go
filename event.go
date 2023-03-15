@@ -13,8 +13,8 @@ type EventRecorder struct {
 	auth           string
 	eventsUrl      string
 	flushInterval  time.Duration
-	incomingEvents []AccessEvent
-	packedData     []PackedData
+	incomingEvents []interface{}
+	access         Access
 	httpClient     http.Client
 	mu             sync.Mutex
 	wg             sync.WaitGroup
@@ -25,16 +25,27 @@ type EventRecorder struct {
 }
 
 type AccessEvent struct {
-	Time    int64       `json:"time"`
-	Key     string      `json:"key"`
-	Value   interface{} `json:"value"`
-	Index   *int        `json:"index"`
-	Version *uint64     `json:"version"`
-	Reason  string      `json:"reason"`
+	Kind           string      `json:"kind"`
+	Time           int64       `json:"time"`
+	User           string      `json:"user"`
+	Key            string      `json:"key"`
+	Value          interface{} `json:"value"`
+	VariationIndex *int        `json:"variationIndex"`
+	RuleIndex      *int        `json:"ruleIndex"`
+	Version        *uint64     `json:"version"`
+	Reason         string      `json:"reason"`
+}
+
+type CustomEvent struct {
+	Kind  string   `json:"kind"`
+	Time  int64    `json:"time"`
+	User  string   `json:"user"`
+	Name  string   `json:"name"`
+	Value *float64 `json:"value"`
 }
 
 type PackedData struct {
-	Events []AccessEvent `json:"events"`
+	Events []interface{} `json:"events"`
 	Access Access        `json:"access"`
 }
 
@@ -67,17 +78,32 @@ func NewEventRecorder(eventsUrl string, flushInterval time.Duration, auth string
 		auth:           auth,
 		eventsUrl:      eventsUrl,
 		flushInterval:  flushInterval,
-		incomingEvents: []AccessEvent{},
-		packedData:     []PackedData{},
+		incomingEvents: []interface{}{},
+		access:         newAccess(),
 		httpClient:     newHttpClient(flushInterval),
 		stopChan:       make(chan struct{}),
+	}
+}
+
+func newAccess() Access {
+	return Access{
+		Counters: make(map[string][]ToggleCounter),
+	}
+}
+
+func nowToggleCounter(value interface{}, version *uint64, index *int) ToggleCounter {
+	return ToggleCounter{
+		value,
+		version,
+		index,
+		1,
 	}
 }
 
 func (e *EventRecorder) Start() {
 	e.wg.Add(1)
 	e.startOnce.Do(func() {
-		e.ticker = time.NewTicker(e.flushInterval * time.Millisecond)
+		e.ticker = time.NewTicker(e.flushInterval)
 		go func() {
 			for {
 				select {
@@ -94,14 +120,15 @@ func (e *EventRecorder) Start() {
 }
 
 func (e *EventRecorder) doFlush() {
-	events := make([]AccessEvent, 0)
+	events := make([]interface{}, 0)
 	e.mu.Lock()
 	events, e.incomingEvents = e.incomingEvents, events
+	packedData := e.buildPackedData(events)
+	e.access = newAccess()
 	e.mu.Unlock()
-	if len(events) == 0 {
+	if len(events) == 0 && len(packedData[0].Access.Counters) == 0 {
 		return
 	}
-	packedData := e.buildPackedData(events)
 	body, _ := json.Marshal(packedData)
 	req, err := http.NewRequest(http.MethodPost, e.eventsUrl, bytes.NewBuffer(body))
 	if err != nil {
@@ -117,62 +144,42 @@ func (e *EventRecorder) doFlush() {
 	}
 }
 
-func (e *EventRecorder) buildPackedData(events []AccessEvent) []PackedData {
-	access := e.buildAccess(events)
-	p := PackedData{Access: access, Events: events}
+func (e *EventRecorder) buildPackedData(events []interface{}) []PackedData {
+	e.access.EndTime = time.Now().UnixNano() / 1e6
+	p := PackedData{Access: e.access, Events: events}
 	return []PackedData{p}
 }
 
-func (e *EventRecorder) buildAccess(events []AccessEvent) Access {
-	counters, startTime, endTime := e.buildCounters(events)
-	access := Access{
-		StartTime: startTime,
-		EndTime:   endTime,
-		Counters:  map[string][]ToggleCounter{},
+func (e *EventRecorder) addAccess(event AccessEvent) {
+	if len(e.access.Counters) == 0 {
+		e.access.StartTime = time.Now().UnixNano() / 1e6
 	}
-
-	for k, v := range counters {
-		counter := ToggleCounter{
-			Index:   k.Index,
-			Version: k.Version,
-			Count:   v.Count,
-			Value:   v.Value,
+	counters, ok := e.access.Counters[event.Key]
+	if ok {
+		for index, counter := range counters {
+			if *counter.Version == *event.Version && *counter.Index == *event.VariationIndex {
+				counters[index].Count = counter.Count + 1
+				return
+			}
 		}
-		c, ok := access.Counters[k.Key]
-		if !ok {
-			access.Counters[k.Key] = []ToggleCounter{counter}
-		} else {
-			access.Counters[k.Key] = append(c, counter)
-		}
+		e.access.Counters[event.Key] = append(counters,
+			nowToggleCounter(event.Value, event.Version, event.VariationIndex))
+	} else {
+		e.access.Counters[event.Key] = []ToggleCounter{
+			nowToggleCounter(event.Value, event.Version, event.VariationIndex)}
 	}
-	return access
 }
 
-func (e *EventRecorder) buildCounters(events []AccessEvent) (map[Variation]CountValue, int64, int64) {
-	var startTime *int64 = nil
-	var endTime *int64 = nil
-	counters := map[Variation]CountValue{}
-
-	for _, event := range events {
-		if startTime == nil || *startTime < event.Time {
-			startTime = &event.Time
-		}
-		if endTime == nil || *endTime > event.Time {
-			endTime = &event.Time
-		}
-
-		v := Variation{Key: event.Key, Version: event.Version, Index: event.Index}
-		c, ok := counters[v]
-		if !ok {
-			counters[v] = CountValue{Count: 1, Value: event.Value}
-		} else {
-			c.Count += 1
-		}
+func (e *EventRecorder) RecordAccess(event AccessEvent, trackAccessEvents bool) {
+	e.mu.Lock()
+	if trackAccessEvents {
+		e.incomingEvents = append(e.incomingEvents, event)
 	}
-	return counters, *startTime, *endTime
+	e.addAccess(event)
+	e.mu.Unlock()
 }
 
-func (e *EventRecorder) RecordAccess(event AccessEvent) {
+func (e *EventRecorder) RecordCustom(event CustomEvent) {
 	e.mu.Lock()
 	e.incomingEvents = append(e.incomingEvents, event)
 	e.mu.Unlock()

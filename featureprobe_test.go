@@ -271,6 +271,18 @@ func TestCloseClient(t *testing.T) {
 	assert.Equal(t, 0, len(fp.Repo.Toggles))
 }
 
+func TestTrack(t *testing.T) {
+	config := FPConfig{
+		RefreshInterval: 100 * time.Millisecond,
+	}
+	fp := NewFeatureProbe(config)
+	user := NewUser()
+	value := 99.9
+	fp.track("some_event", user, &value)
+	fp.track("some_event2", user, nil)
+	assert.True(t, len(fp.Recorder.incomingEvents) == 2)
+}
+
 func TestContract(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/server-sdk-specification/spec/toggle_simple_spec.json")
 	var tests ContractTests

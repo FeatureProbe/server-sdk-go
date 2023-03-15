@@ -172,6 +172,18 @@ func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue inter
 	return val
 }
 
+func (fp *FeatureProbe) track(eventName string, user FPUser, value *float64) {
+	if fp.Recorder != nil {
+		fp.Recorder.RecordCustom(CustomEvent{
+			Kind:  "custom",
+			Time:  time.Now().UnixNano() / 1e6,
+			User:  user.Key(),
+			Name:  eventName,
+			Value: value,
+		})
+	}
+}
+
 func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue interface{}) (interface{}, *int, *uint64, string) {
 	value := defaultValue
 	reason := fmt.Sprintf("Toggle:[%s] not exist", toggle)
@@ -197,15 +209,18 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 		value = detail.Value
 	}
 
-	if fp.Recorder != nil {
+	if fp.Recorder != nil && variationIndex != nil {
 		fp.Recorder.RecordAccess(AccessEvent{
-			Time:    time.Now().UnixNano() / 1e6,
-			Key:     toggle,
-			Value:   value,
-			Index:   variationIndex,
-			Version: version,
-			Reason:  reason,
-		})
+			Kind:           "access",
+			Time:           time.Now().UnixNano() / 1e6,
+			User:           user.Key(),
+			Key:            toggle,
+			Value:          value,
+			VariationIndex: variationIndex,
+			RuleIndex:      ruleIndex,
+			Version:        version,
+			Reason:         reason,
+		}, t.TrackAccessEvents)
 	}
 
 	return value, ruleIndex, version, reason
