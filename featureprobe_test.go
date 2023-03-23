@@ -278,8 +278,8 @@ func TestTrack(t *testing.T) {
 	fp := NewFeatureProbe(config)
 	user := NewUser()
 	value := 99.9
-	fp.track("some_event", user, &value)
-	fp.track("some_event2", user, nil)
+	fp.Track("some_event", user, &value)
+	fp.Track("some_event2", user, nil)
 	assert.True(t, len(fp.Recorder.incomingEvents) == 2)
 }
 

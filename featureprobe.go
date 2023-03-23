@@ -172,7 +172,7 @@ func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue inter
 	return val
 }
 
-func (fp *FeatureProbe) track(eventName string, user FPUser, value *float64) {
+func (fp *FeatureProbe) Track(eventName string, user FPUser, value *float64) {
 	if fp.Recorder != nil {
 		fp.Recorder.RecordCustom(CustomEvent{
 			Kind:  "custom",
