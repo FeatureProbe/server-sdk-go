@@ -1,4 +1,4 @@
-module github.com/featureprobe/server-sdk-go
+module github.com/featureprobe/server-sdk-go/v2
 
 go 1.13
 
