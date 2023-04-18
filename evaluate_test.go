@@ -30,7 +30,7 @@ func TestMatchInSegmentCondition(t *testing.T) {
 
 	user := NewUser().With("city", "4")
 	toggle := repo.Toggles["json_toggle"]
-	detail, _ := toggle.evalDetail(user, repo.Segments)
+	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_1"], "v2")
@@ -44,7 +44,7 @@ func TestMatchNotInSegmentCondition(t *testing.T) {
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["not_in_segment"]
-	detail, _ := toggle.evalDetail(user, repo.Segments)
+	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["not_in"], true)
@@ -58,8 +58,8 @@ func TestNotMatchInSegmentCondition(t *testing.T) {
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["json_toggle"]
-	_, _ = toggle.Eval(user, repo.Segments)
-	detail, _ := toggle.evalDetail(user, repo.Segments)
+	_, _ = toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
+	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Equal(t, detail.Reason, "default")
 }
 
@@ -102,26 +102,26 @@ func TestMultiConditions(t *testing.T) {
 
 	user := NewUser().StableRollout("key11").With("city", "1").With("os", "linux")
 	toggle := repo.Toggles["multi_condition_toggle"]
-	r, _ := toggle.Eval(user, repo.Segments)
+	r, _ := toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
 	user = NewUser().StableRollout("key").With("city", "1").With("os", "linux")
 	toggle = repo.Toggles["multi_condition_toggle"]
-	detail, _ := toggle.evalDetail(user, repo.Segments)
+	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
 
 	user = NewUser().StableRollout("key").With("os", "linux")
-	detail, _ = toggle.evalDetail(user, repo.Segments)
+	detail, _ = toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, detail.Reason, "default")
 
 	user = NewUser().StableRollout("key").With("city", "1")
-	detail, _ = toggle.evalDetail(user, repo.Segments)
+	detail, _ = toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	_, ok = detail.Value.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, detail.Reason, "default")
@@ -135,10 +135,10 @@ func TestDisabledToggle(t *testing.T) {
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["disabled_toggle"]
-	detail, _ := toggle.evalDetail(user, repo.Segments)
+	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Equal(t, detail.Reason, "disabled")
 
-	_, err = toggle.Eval(user, repo.Segments)
+	_, err = toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Empty(t, err)
 }
 
@@ -1102,7 +1102,7 @@ func TestMatchEqualString(t *testing.T) {
 
 	user := NewUser().With("city", "1")
 	toggle := repo.Toggles["json_toggle"]
-	r, _ := toggle.Eval(user, repo.Segments)
+	r, _ := toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "c2")
@@ -1144,10 +1144,10 @@ func TestDisabledOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser()
-	_, err = toggle.Eval(user, nil)
+	_, err = toggle.Eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
-	_, err = toggle.evalDetail(user, nil)
+	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 }
 
@@ -1191,10 +1191,10 @@ func TestEnabledOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser().With("city", "1")
-	_, err = toggle.Eval(user, nil)
+	_, err = toggle.Eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
-	_, err = toggle.evalDetail(user, nil)
+	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 }
 
@@ -1222,10 +1222,10 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser().With("city", "1")
-	_, err = toggle.Eval(user, nil)
+	_, err = toggle.Eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
-	_, err = toggle.evalDetail(user, nil)
+	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 }
 

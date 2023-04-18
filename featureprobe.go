@@ -20,13 +20,14 @@ type FeatureProbe struct {
 }
 
 type FPConfig struct {
-	RemoteUrl       string
-	TogglesUrl      string
-	EventsUrl       string
-	ServerSdkKey    string
-	RefreshInterval time.Duration
-	StartWait       time.Duration
-	Repo            *Repository
+	RemoteUrl            string
+	TogglesUrl           string
+	EventsUrl            string
+	ServerSdkKey         string
+	RefreshInterval      time.Duration
+	StartWait            time.Duration
+	Repo                 *Repository
+	MaxPrerequisitesDeep int
 }
 
 type FPBoolDetail struct {
@@ -59,7 +60,6 @@ type FPJsonDetail struct {
 
 func NewFeatureProbe(config FPConfig) FeatureProbe {
 	ready := make(chan struct{}, 1)
-
 	setServerUrls(&config)
 	timeout := config.RefreshInterval
 	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
@@ -76,13 +76,16 @@ func NewFeatureProbe(config FPConfig) FeatureProbe {
 		toggleSyncer = NewCustomRepoSynchronizer(config.Repo)
 	}
 	toggleSyncer.Start(ready)
-
+	if config.MaxPrerequisitesDeep == 0 {
+		config.MaxPrerequisitesDeep = 20
+	}
 	client := FeatureProbe{
 		Config:   config,
 		Repo:     &repo,
 		Syncer:   &toggleSyncer,
 		Recorder: &eventRecorder,
 	}
+
 	if config.StartWait > 0 {
 		for {
 			select {
@@ -198,13 +201,12 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	if !ok {
 		return value, ruleIndex, version, reason
 	}
-	detail, err := t.evalDetail(user, fp.Repo.Segments)
+	detail, err := t.evalDetail(user, fp.Repo.Toggles, fp.Repo.Segments, defaultValue, fp.Config.MaxPrerequisitesDeep)
 
 	variationIndex = detail.VariationIndex
 	ruleIndex = detail.RuleIndex
 	version = detail.Version
 	reason = detail.Reason
-
 	if err == nil {
 		value = detail.Value
 	}
