@@ -58,6 +58,7 @@ func TestEvalNilRepo(t *testing.T) {
 func TestEval(t *testing.T) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+
 	err := json.Unmarshal(bytes, &repo)
 	assert.Equal(t, nil, err)
 
@@ -363,6 +364,7 @@ func assertBoolDetail(t *testing.T, Case Case, r FPBoolDetail) {
 func assertNumberDetail(t *testing.T, Case Case, r FPNumberDetail) {
 	if Case.ExpectResult.Reason != nil {
 		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+
 	}
 	if Case.ExpectResult.RuleIndex != nil {
 		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
@@ -379,7 +381,6 @@ func assertStrDetail(t *testing.T, Case Case, r FPStrDetail) {
 	// if Case.ExpectResult.Reason != nil {
 	// 	assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
 	// }
-	//fmt.Println("Case.ExpectResultCase.ExpectResultCase.ExpectResultCase.ExpectResult", r.Reason, *Case.ExpectResult.Reason)
 	if Case.ExpectResult.RuleIndex != nil {
 		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
 	}

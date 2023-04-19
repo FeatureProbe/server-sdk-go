@@ -138,16 +138,16 @@ func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map
 		return detail, nil
 	}
 	if err == ErrPrerequisiteDeepOverflow || err == ErrPrerequisiteNotExist {
-		detail, err = t.createDefaultEvalDetail(evalParams{
+		defaultDetail, evalErr := t.createDefaultEvalDetail(evalParams{
 			User:       user,
 			Segments:   segments,
 			Variations: t.Variations,
 			Key:        t.Key,
 		}, defaultValue)
-		if err != nil {
-			detail.Reason = err.Error()
+		if evalErr == nil {
+			defaultDetail.Reason = err.Error()
 		}
-		return detail, nil
+		return defaultDetail, evalErr
 	}
 	return detail, err
 }
