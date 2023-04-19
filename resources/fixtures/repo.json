@@ -333,6 +333,150 @@
         }
       ]
     },
+    "prerequisite_toggle": {
+      "key": "prerequisite_toggle",
+      "enabled": true,
+      "forClient": false,
+      "version": 1,
+      "disabledServe": {
+        "select": 0
+      },
+      "defaultServe": {
+        "select": 1
+      },
+      "rules": [
+        {
+          "serve": {
+            "select": 2
+          },
+          "conditions": [
+            {
+              "type": "string",
+              "subject": "city",
+              "predicate": "is one of",
+              "objects": [
+                "1"
+              ]
+            }
+          ]
+        }
+      ],
+      "prerequisites": [
+        {
+          "key": "string_toggle",
+          "value": "1"
+        }
+      ],
+      "variations": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    "not_match_prerequisite_toggle": {
+      "key": "not_match_prerequisite_toggle",
+      "enabled": true,
+      "forClient": false,
+      "version": 1,
+      "disabledServe": {
+        "select": 0
+      },
+      "defaultServe": {
+        "select": 1
+      },
+      "rules": [
+        {
+          "serve": {
+            "select": 2
+          },
+          "conditions": [
+            {
+              "type": "string",
+              "subject": "city",
+              "predicate": "is one of",
+              "objects": [
+                "6"
+              ]
+            }
+          ]
+        }
+      ],
+      "prerequisites": [
+        {
+          "key": "string_toggle",
+          "value": "1000"
+        }
+      ],
+      "variations": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    "prerequisite_not_exist_toggle": {
+      "key": "prerequisite_not_exist_toggle",
+      "enabled": true,
+      "forClient": false,
+      "version": 1,
+      "disabledServe": {
+        "select": 0
+      },
+      "defaultServe": {
+        "select": 1
+      },
+      "rules": [
+        {
+          "serve": {
+            "select": 2
+          },
+          "conditions": [
+            {
+              "type": "string",
+              "subject": "city",
+              "predicate": "is one of",
+              "objects": [
+                "6"
+              ]
+            }
+          ]
+        }
+      ],
+      "prerequisites": [
+        {
+          "key": "string_toggle_not_exist",
+          "value": "1000"
+        }
+      ],
+      "variations": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    "prerequisite_deep_overflow": {
+      "key": "prerequisite_deep_overflow",
+      "enabled": true,
+      "forClient": false,
+      "version": 1,
+      "disabledServe": {
+        "select": 0
+      },
+      "defaultServe": {
+        "select": 1
+      },
+      "rules": [ ],
+      "prerequisites": [
+        {
+          "key": "prerequisite_deep_overflow",
+          "value": "0"
+        }
+      ],
+      "variations": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
     "not_in_segment": {
       "key": "not_in_segment",
       "enabled": true,
