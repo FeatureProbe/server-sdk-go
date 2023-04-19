@@ -73,7 +73,7 @@ type Condition struct {
 	Objects   []string `json:"objects"`
 }
 
-type evalParams struct {
+type EvalParam struct {
 	Key        string
 	IsDetail   bool
 	User       FPUser
@@ -123,11 +123,10 @@ func (r *Range) UnmarshalJSON(data []byte) error {
 		Lower: raw[0],
 		Upper: raw[1],
 	}
-
 	return nil
 }
 
-func (t *Toggle) Eval(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (interface{}, error) {
+func (t *Toggle) eval(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (interface{}, error) {
 	detail, err := t.evalDetail(user, toggles, segments, defaultValue, deep)
 	return detail.Value, err
 }
@@ -138,7 +137,7 @@ func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map
 		return detail, nil
 	}
 	if err == ErrPrerequisiteDeepOverflow || err == ErrPrerequisiteNotExist {
-		defaultDetail, evalErr := t.createDefaultEvalDetail(evalParams{
+		defaultDetail, evalErr := t.createDefaultEvalDetail(EvalParam{
 			User:       user,
 			Segments:   segments,
 			Variations: t.Variations,
@@ -176,7 +175,7 @@ func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments m
 	if deep <= 0 {
 		return t.buildEvalDetail(defaultValue, nil, nil, ""), ErrPrerequisiteDeepOverflow
 	}
-	params := evalParams{
+	params := EvalParam{
 		User:       user,
 		Segments:   segments,
 		Variations: t.Variations,
@@ -208,7 +207,7 @@ func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments m
 	return t.createDefaultEvalDetail(params, defaultValue)
 }
 
-func (t *Toggle) createDefaultEvalDetail(params evalParams, defaultValue interface{}) (EvalDetail, error) {
+func (t *Toggle) createDefaultEvalDetail(params EvalParam, defaultValue interface{}) (EvalDetail, error) {
 	serve, vi, err := t.DefaultServe.selectVariation(params)
 	if err != nil {
 		return t.buildEvalDetail(defaultValue, nil, nil, err.Error()), err
@@ -227,7 +226,7 @@ func (t *Toggle) buildEvalDetail(value interface{}, ruleIndex *int, variationInd
 
 }
 
-func (s *Serve) selectVariation(params evalParams) (interface{}, *int, error) {
+func (s *Serve) selectVariation(params EvalParam) (interface{}, *int, error) {
 	var index *int = nil
 	if s.Select != nil {
 		index = s.Select
@@ -246,7 +245,7 @@ func (s *Serve) selectVariation(params evalParams) (interface{}, *int, error) {
 	return params.Variations[*index], index, nil
 }
 
-func (s *Split) findIndex(params evalParams) (int, error) {
+func (s *Split) findIndex(params EvalParam) (int, error) {
 	hashKey, err := s.hashKey(params)
 	if err != nil {
 		return -1, err
@@ -281,7 +280,7 @@ func (s *Split) getVariation(bucketIndex int) int {
 	return -1
 }
 
-func (s *Split) hashKey(params evalParams) (string, error) {
+func (s *Split) hashKey(params EvalParam) (string, error) {
 	var hashKey string
 	user := params.User
 	if len(s.BucketBy) == 0 {
@@ -298,7 +297,7 @@ func (s *Split) hashKey(params evalParams) (string, error) {
 	return hashKey, nil
 }
 
-func (r *Rule) serveVariation(params evalParams) (interface{}, *int, error) {
+func (r *Rule) serveVariation(params EvalParam) (interface{}, *int, error) {
 	for _, c := range r.Conditions {
 		if !c.meet(params.User, params.Segments) {
 			return nil, nil, nil

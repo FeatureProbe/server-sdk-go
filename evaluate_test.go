@@ -10,6 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func loadRepoFromFile() (repo Repository, err error) {
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	err = json.Unmarshal(bytes, &repo)
+
+	return
+}
+
 func TestTogglesUnmarshal(t *testing.T) {
 	var toggles Toggles
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/toggles.json")
@@ -23,9 +30,7 @@ func TestSaltHash(t *testing.T) {
 }
 
 func TestMatchInSegmentCondition(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	err := json.Unmarshal(bytes, &repo)
+	repo, err := loadRepoFromFile()
 	assert.Equal(t, nil, err)
 
 	user := NewUser().With("city", "4")
@@ -37,10 +42,7 @@ func TestMatchInSegmentCondition(t *testing.T) {
 }
 
 func TestMatchNotInSegmentCondition(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	err := json.Unmarshal(bytes, &repo)
-	assert.Equal(t, nil, err)
+	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["not_in_segment"]
@@ -51,14 +53,11 @@ func TestMatchNotInSegmentCondition(t *testing.T) {
 }
 
 func TestNotMatchInSegmentCondition(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	err := json.Unmarshal(bytes, &repo)
-	assert.Equal(t, nil, err)
+	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["json_toggle"]
-	_, _ = toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
+	_, _ = toggle.eval(user, repo.Toggles, repo.Segments, nil, 10)
 	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Equal(t, detail.Reason, "default")
 }
@@ -95,14 +94,11 @@ func TestSegmentsUnknownPredicate(t *testing.T) {
 }
 
 func TestMultiConditions(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	err := json.Unmarshal(bytes, &repo)
-	assert.Equal(t, nil, err)
+	repo, _ := loadRepoFromFile()
 
 	user := NewUser().StableRollout("key11").With("city", "1").With("os", "linux")
 	toggle := repo.Toggles["multi_condition_toggle"]
-	r, _ := toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
+	r, _ := toggle.eval(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "")
@@ -128,18 +124,62 @@ func TestMultiConditions(t *testing.T) {
 }
 
 func TestDisabledToggle(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	err := json.Unmarshal(bytes, &repo)
-	assert.Equal(t, nil, err)
+	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "100")
 	toggle := repo.Toggles["disabled_toggle"]
 	detail, _ := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Equal(t, detail.Reason, "disabled")
 
-	_, err = toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
+	_, err := toggle.eval(user, repo.Toggles, repo.Segments, nil, 10)
 	assert.Empty(t, err)
+}
+
+func TestPrerequisiteToggleMatched(t *testing.T) {
+	repo, _ := loadRepoFromFile()
+
+	user := NewUser().With("city", "1")
+	toggle := repo.Toggles["prerequisite_toggle"]
+
+	detail, err := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
+	assert.Empty(t, err)
+	assert.Equal(t, detail.Value, "2")
+}
+
+func TestPrerequisiteToggleNotMatchedShouldBeReturnDefaultValue(t *testing.T) {
+	repo, _ := loadRepoFromFile()
+
+	user := NewUser().With("city", "6")
+	toggle := repo.Toggles["not_match_prerequisite_toggle"]
+
+	detail, err := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
+	assert.Empty(t, err)
+	assert.Equal(t, detail.Reason, "default")
+	assert.Equal(t, detail.Value, "1")
+}
+
+func TestPrerequisiteToggleNotExistShouldBeReturnDefaultValue(t *testing.T) {
+	repo, _ := loadRepoFromFile()
+
+	user := NewUser().With("city", "6")
+	toggle := repo.Toggles["prerequisite_not_exist_toggle"]
+
+	detail, err := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 10)
+	assert.Empty(t, err)
+	assert.Equal(t, detail.Reason, "prerequisite toggle not exist")
+	assert.Equal(t, detail.Value, "1")
+}
+
+func TestPrerequisiteToggleDeepOverlowShouldBeReturnDefaultValue(t *testing.T) {
+	repo, _ := loadRepoFromFile()
+
+	user := NewUser().With("city", "6")
+	toggle := repo.Toggles["prerequisite_deep_overflow"]
+
+	detail, err := toggle.evalDetail(user, repo.Toggles, repo.Segments, nil, 5)
+	assert.Empty(t, err)
+	assert.Equal(t, detail.Reason, "prerequisite deep overflow")
+	assert.Equal(t, detail.Value, "1")
 }
 
 func TestDistributionNoSalt(t *testing.T) {
@@ -157,7 +197,7 @@ func TestDistributionNoSalt(t *testing.T) {
 
 	user := NewUser().StableRollout("key").With("name", "key")
 
-	params := evalParams{
+	params := EvalParam{
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -182,7 +222,7 @@ func TestDistributionInExactBucket(t *testing.T) {
 
 	user := NewUser().StableRollout("key").With("name", "key")
 
-	params := evalParams{
+	params := EvalParam{
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -207,7 +247,7 @@ func TestDistributionInNoneBucket(t *testing.T) {
 
 	user := NewUser().StableRollout("key").With("name", "key")
 
-	params := evalParams{
+	params := EvalParam{
 		User:       user,
 		Variations: nil,
 		Segments:   nil,
@@ -235,7 +275,7 @@ func TestSelectVariationFail(t *testing.T) {
 
 	user := NewUser().StableRollout("key")
 
-	params := evalParams{
+	params := EvalParam{
 		User: user,
 		Variations: []interface{}{
 			"a", "b",
@@ -1102,7 +1142,7 @@ func TestMatchEqualString(t *testing.T) {
 
 	user := NewUser().With("city", "1")
 	toggle := repo.Toggles["json_toggle"]
-	r, _ := toggle.Eval(user, repo.Toggles, repo.Segments, nil, 10)
+	r, _ := toggle.eval(user, repo.Toggles, repo.Segments, nil, 10)
 	v, ok := r.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, v["variation_0"], "c2")
@@ -1144,7 +1184,7 @@ func TestDisabledOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser()
-	_, err = toggle.Eval(user, nil, nil, nil, 10)
+	_, err = toggle.eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
 	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
@@ -1191,7 +1231,7 @@ func TestEnabledOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser().With("city", "1")
-	_, err = toggle.Eval(user, nil, nil, nil, 10)
+	_, err = toggle.eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
 	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
@@ -1222,7 +1262,7 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonStr), &toggle)
 	assert.Empty(t, err)
 	user := NewUser().With("city", "1")
-	_, err = toggle.Eval(user, nil, nil, nil, 10)
+	_, err = toggle.eval(user, nil, nil, nil, 10)
 	assert.Error(t, err)
 
 	_, err = toggle.evalDetail(user, nil, nil, nil, 10)
@@ -1230,9 +1270,7 @@ func TestDefaultServeOutOfRangeToggle(t *testing.T) {
 }
 
 func TestClearRepo(t *testing.T) {
-	var repo Repository
-	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	json.Unmarshal(bytes, &repo)
+	repo, _ := loadRepoFromFile()
 	assert.True(t, len(repo.Segments) > 0)
 	assert.True(t, len(repo.Toggles) > 0)
 
