@@ -138,8 +138,7 @@ func TestCloseEvent(t *testing.T) {
 	version := uint64(1)
 	variationIndex := 0
 	ruleIndex := 0
-	recorder := NewEventRecorder("https://featureprobe.com/api/events", 5000, "sdk_key")
-	recorder.Start()
+	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
 		Time:           time.Now().Unix(),
@@ -153,7 +152,10 @@ func TestCloseEvent(t *testing.T) {
 	}, true)
 	httpmock.ActivateNonDefault(&recorder.httpClient)
 	httpmock.RegisterResponder("POST", "https://featureprobe.com/api/events",
-		httpmock.NewStringResponder(200, "{"))
+		httpmock.NewStringResponder(200, "{}"))
+
+	recorder.Start()
+	time.Sleep(2 * time.Second)
 
 	recorder.Stop()
 
