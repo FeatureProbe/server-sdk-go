@@ -65,7 +65,7 @@ func (s *Synchronizer) Start(ready chan<- struct{}) {
 				case <-s.stopChan:
 					return
 				case <-s.ticker.C:
-					err := s.fetchRemoteRepo()
+					err := s.FetchRemoteRepo()
 					if err == nil {
 						s.setInitializedOnce.Do(func() {
 							// first sync success
@@ -92,7 +92,7 @@ func (s *Synchronizer) Stop() {
 	}
 }
 
-func (s *Synchronizer) fetchRemoteRepo() error {
+func (s *Synchronizer) FetchRemoteRepo() error {
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
 
 	if err != nil {
