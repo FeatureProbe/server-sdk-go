@@ -309,6 +309,7 @@ func newHttpClient(timeout time.Duration) http.Client {
 	}
 }
 
+// Initialized return false means not successfully fetch remote resource
 func (fp *FeatureProbe) Initialized() bool {
 	return fp.Syncer.Initialized()
 }

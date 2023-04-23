@@ -79,6 +79,7 @@ func (s *Synchronizer) Start(ready chan<- struct{}) {
 	})
 }
 
+// Initialized return false means not successfully fetch remote resource
 func (s *Synchronizer) Initialized() bool {
 	return s.isInitialized
 }
@@ -92,6 +93,7 @@ func (s *Synchronizer) Stop() {
 	}
 }
 
+// FetchRemoteRepo fetch remote repo and update local repo
 func (s *Synchronizer) FetchRemoteRepo() error {
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
 
