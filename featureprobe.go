@@ -3,8 +3,10 @@ package featureprobe
 import (
 	"context"
 	"fmt"
+	socketio "github.com/socket-iox/socket-io-client-go"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -16,6 +18,7 @@ type FeatureProbe struct {
 	Config   FPConfig
 	Repo     *Repository
 	Syncer   *Synchronizer
+	Socket   *socketio.Client
 	Recorder *EventRecorder
 }
 
@@ -23,6 +26,7 @@ type FPConfig struct {
 	RemoteUrl            string
 	TogglesUrl           string
 	EventsUrl            string
+	RealtimeUrl          string
 	ServerSdkKey         string
 	RefreshInterval      time.Duration
 	StartWait            time.Duration
@@ -65,6 +69,14 @@ func NewFeatureProbe(config FPConfig) FeatureProbe {
 	eventRecorder := NewEventRecorder(config.EventsUrl, timeout, config.ServerSdkKey)
 	eventRecorder.Start()
 
+	//setup realtime connection
+	u, err := url.Parse(config.RealtimeUrl)
+	var socket *socketio.Client
+	if err == nil {
+		s := socketio.Client{NameSpace: &u.Path}
+		socket = &s
+	}
+
 	ctx, cancelFunc := context.WithTimeout(context.Background(), config.StartWait)
 	defer cancelFunc()
 	toggleSyncer := Synchronizer{}
@@ -84,7 +96,10 @@ func NewFeatureProbe(config FPConfig) FeatureProbe {
 		Repo:     &repo,
 		Syncer:   &toggleSyncer,
 		Recorder: &eventRecorder,
+		Socket:   socket,
 	}
+
+	go client.connectSocket()
 
 	if config.StartWait > 0 {
 		for {
@@ -108,6 +123,9 @@ func setServerUrls(config *FPConfig) {
 	}
 	if len(config.EventsUrl) == 0 {
 		config.EventsUrl = config.RemoteUrl + "api/events"
+	}
+	if len(config.RealtimeUrl) == 0 {
+		config.RealtimeUrl = config.RemoteUrl + "realtime"
 	}
 	if len(config.TogglesUrl) == 0 {
 		config.TogglesUrl = config.RemoteUrl + "api/server-sdk/toggles"
@@ -291,8 +309,9 @@ func newHttpClient(timeout time.Duration) http.Client {
 	}
 }
 
-func (client *FeatureProbe) Initialized() bool {
-	return client.Syncer.Initialized()
+// Initialized return false means not successfully fetch remote resource
+func (fp *FeatureProbe) Initialized() bool {
+	return fp.Syncer.Initialized()
 }
 
 func (fp *FeatureProbe) Close() {
@@ -304,5 +323,21 @@ func (fp *FeatureProbe) Close() {
 	}
 	if fp.Recorder != nil {
 		fp.Recorder.Stop()
+	}
+}
+
+func (fp *FeatureProbe) connectSocket() {
+	url := fp.Config.RealtimeUrl
+	client := fp.Socket
+	client.On("connect", func(client *socketio.Client, data []string) {
+		client.Emit("register", map[string]string{"key": fp.Config.ServerSdkKey})
+	})
+
+	client.On("update", func(client *socketio.Client, data []string) {
+		fp.Syncer.FetchRemoteRepo()
+	})
+
+	if err := client.Connect(url, "websocket"); err != nil {
+		fmt.Printf("realtime socket connect err: %s\n", err)
 	}
 }

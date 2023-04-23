@@ -65,7 +65,7 @@ func (s *Synchronizer) Start(ready chan<- struct{}) {
 				case <-s.stopChan:
 					return
 				case <-s.ticker.C:
-					err := s.fetchRemoteRepo()
+					err := s.FetchRemoteRepo()
 					if err == nil {
 						s.setInitializedOnce.Do(func() {
 							// first sync success
@@ -79,6 +79,7 @@ func (s *Synchronizer) Start(ready chan<- struct{}) {
 	})
 }
 
+// Initialized return false means not successfully fetch remote resource
 func (s *Synchronizer) Initialized() bool {
 	return s.isInitialized
 }
@@ -92,7 +93,8 @@ func (s *Synchronizer) Stop() {
 	}
 }
 
-func (s *Synchronizer) fetchRemoteRepo() error {
+// FetchRemoteRepo fetch remote repo and update local repo
+func (s *Synchronizer) FetchRemoteRepo() error {
 	req, err := http.NewRequest(http.MethodGet, s.togglesUrl, nil)
 
 	if err != nil {
