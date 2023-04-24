@@ -146,9 +146,6 @@ func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map
 		}
 		return defaultDetail, evalErr
 	}
-	if err != nil {
-		detail.Value = defaultValue
-	}
 	return detail, err
 }
 
