@@ -31,6 +31,18 @@ type AccessEvent struct {
 	Key            string      `json:"key"`
 	Value          interface{} `json:"value"`
 	VariationIndex *int        `json:"variationIndex"`
+	Version        *uint64     `json:"version"`
+	Reason         string      `json:"reason"`
+}
+
+type DebugEvent struct {
+	Kind           string      `json:"kind"`
+	Time           int64       `json:"time"`
+	User           string      `json:"user"`
+	UserDetail     FPUser      `json:"userDetail"`
+	Key            string      `json:"key"`
+	Value          interface{} `json:"value"`
+	VariationIndex *int        `json:"variationIndex"`
 	RuleIndex      *int        `json:"ruleIndex"`
 	Version        *uint64     `json:"version"`
 	Reason         string      `json:"reason"`
@@ -176,6 +188,12 @@ func (e *EventRecorder) RecordAccess(event AccessEvent, trackAccessEvents bool) 
 		e.incomingEvents = append(e.incomingEvents, event)
 	}
 	e.addAccess(event)
+	e.mu.Unlock()
+}
+
+func (e *EventRecorder) RecordDebugAccess(debugEvent DebugEvent) {
+	e.mu.Lock()
+	e.incomingEvents = append(e.incomingEvents, debugEvent)
 	e.mu.Unlock()
 }
 
