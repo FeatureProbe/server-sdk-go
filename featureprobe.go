@@ -230,10 +230,12 @@ func (fp *FeatureProbe) trackEvent(toggle Toggle, user FPUser, evalDetail EvalDe
 			Kind:           "debug",
 			Time:           nowTime,
 			User:           user.Key(),
-			UserDetail:     user,
+			Key:            toggle.Key,
+			UserDetail:     user.ToMap(),
 			Value:          evalDetail.Value,
 			VariationIndex: evalDetail.VariationIndex,
 			RuleIndex:      evalDetail.RuleIndex,
+			Version:        evalDetail.Version,
 			Reason:         evalDetail.Reason,
 		})
 	}

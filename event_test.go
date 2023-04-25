@@ -98,7 +98,6 @@ func TestEventFlushInvalidResp(t *testing.T) {
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -108,7 +107,6 @@ func TestEventFlushInvalidResp(t *testing.T) {
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 
 	httpmock.ActivateNonDefault(&recorder.httpClient)

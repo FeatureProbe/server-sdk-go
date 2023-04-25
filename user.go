@@ -45,3 +45,10 @@ func (u FPUser) GetAll() map[string]string {
 func (u FPUser) Get(key string) string {
 	return u.attrs[key]
 }
+
+func (u FPUser) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"key":   u.Key(),
+		"attrs": u.GetAll(),
+	}
+}
