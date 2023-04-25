@@ -284,6 +284,35 @@ func TestTrack(t *testing.T) {
 	assert.True(t, len(fp.Recorder.incomingEvents) == 2)
 }
 
+func TestRecorderDebugEvent(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	json.Unmarshal(bytes, &repo)
+	repo.DebugUntilTime = uint64((time.Now().UnixNano() / 1e6) + 5000)
+
+	user := NewUser().With("city", "4")
+	fp := setupFeatureProbe(t, repo)
+	fp.BoolValue("bool_toggle", user, true)
+
+	assert.Equal(t, 1, len(fp.Recorder.incomingEvents))
+	debugEvent := (fp.Recorder.incomingEvents[0]).(DebugEvent)
+	assert.Equal(t, debugEvent.Kind, "debug")
+	assert.Equal(t, debugEvent.Value, false)
+	assert.Equal(t, *debugEvent.RuleIndex, 1)
+	assert.Equal(t, *debugEvent.VariationIndex, 1)
+	assert.Equal(t, debugEvent.Reason, "rule 1 ")
+}
+
+func TestNotRecorderDebugEvent(t *testing.T) {
+	var repo Repository
+	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
+	json.Unmarshal(bytes, &repo)
+	user := NewUser().With("city", "4")
+	fp := setupFeatureProbe(t, repo)
+	fp.BoolValue("bool_toggle", user, true)
+	assert.Equal(t, 0, len(fp.Recorder.incomingEvents))
+}
+
 func TestContract(t *testing.T) {
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/server-sdk-specification/spec/toggle_simple_spec.json")
 	var tests ContractTests

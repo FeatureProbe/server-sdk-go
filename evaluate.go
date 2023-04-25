@@ -15,8 +15,9 @@ import (
 )
 
 type Repository struct {
-	Toggles  map[string]Toggle  `json:"toggles"`
-	Segments map[string]Segment `json:"segments"`
+	Toggles        map[string]Toggle  `json:"toggles"`
+	Segments       map[string]Segment `json:"segments"`
+	DebugUntilTime uint64             `json:"debugUntilTime"`
 }
 
 type Toggles struct {
@@ -133,9 +134,6 @@ func (t *Toggle) eval(user FPUser, toggles map[string]Toggle, segments map[strin
 
 func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (EvalDetail, error) {
 	detail, err := t.doEvalDetail(user, toggles, segments, defaultValue, deep)
-	if err == nil {
-		return detail, nil
-	}
 	if err == ErrPrerequisiteDeepOverflow || err == ErrPrerequisiteNotExist {
 		defaultDetail, evalErr := t.createDefaultEvalDetail(EvalParam{
 			User:       user,

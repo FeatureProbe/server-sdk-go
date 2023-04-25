@@ -206,44 +206,57 @@ func (fp *FeatureProbe) Track(eventName string, user FPUser, value *float64) {
 }
 
 func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue interface{}) (interface{}, *int, *uint64, string) {
-	value := defaultValue
 	reason := fmt.Sprintf("Toggle:[%s] not exist", toggle)
 	var ruleIndex *int = nil
 	var version *uint64 = nil
 	var variationIndex *int = nil
 
 	if fp.Repo == nil {
-		return value, ruleIndex, version, reason
+		return defaultValue, ruleIndex, version, reason
 	}
 	t, ok := fp.Repo.Toggles[toggle]
 	if !ok {
-		return value, ruleIndex, version, reason
+		return defaultValue, ruleIndex, version, reason
 	}
-	detail, err := t.evalDetail(user, fp.Repo.Toggles, fp.Repo.Segments, defaultValue, fp.Config.MaxPrerequisitesDeep)
+	detail, _ := t.evalDetail(user, fp.Repo.Toggles, fp.Repo.Segments, defaultValue, fp.Config.MaxPrerequisitesDeep)
 
 	variationIndex = detail.VariationIndex
 	ruleIndex = detail.RuleIndex
 	version = detail.Version
 	reason = detail.Reason
-	if err == nil {
-		value = detail.Value
-	}
 
 	if fp.Recorder != nil && variationIndex != nil {
-		fp.Recorder.RecordAccess(AccessEvent{
-			Kind:           "access",
-			Time:           time.Now().UnixNano() / 1e6,
-			User:           user.Key(),
-			Key:            toggle,
-			Value:          value,
-			VariationIndex: variationIndex,
-			RuleIndex:      ruleIndex,
-			Version:        version,
-			Reason:         reason,
-		}, t.TrackAccessEvents)
+		fp.trackEvent(t, user, detail)
 	}
+	return detail.Value, ruleIndex, version, reason
+}
 
-	return value, ruleIndex, version, reason
+func (fp *FeatureProbe) trackEvent(toggle Toggle, user FPUser, evalDetail EvalDetail) {
+	nowTime := time.Now().UnixNano() / 1e6
+	fp.Recorder.RecordAccess(AccessEvent{
+		Kind:           "access",
+		Time:           nowTime,
+		User:           user.Key(),
+		Key:            toggle.Key,
+		Value:          evalDetail.Value,
+		VariationIndex: evalDetail.VariationIndex,
+		Version:        evalDetail.Version,
+	}, toggle.TrackAccessEvents)
+
+	if fp.Repo.DebugUntilTime > 0 && fp.Repo.DebugUntilTime >= uint64(nowTime) {
+		fp.Recorder.RecordDebugAccess(DebugEvent{
+			Kind:           "debug",
+			Time:           nowTime,
+			User:           user.Key(),
+			Key:            toggle.Key,
+			UserDetail:     user.ToMap(),
+			Value:          evalDetail.Value,
+			VariationIndex: evalDetail.VariationIndex,
+			RuleIndex:      evalDetail.RuleIndex,
+			Version:        evalDetail.Version,
+			Reason:         evalDetail.Reason,
+		})
+	}
 }
 
 func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) FPBoolDetail {

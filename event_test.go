@@ -10,7 +10,6 @@ import (
 
 func TestEventFlush(t *testing.T) {
 	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
-	ruleIndex := 0
 	versions := []uint64{1, 1, 1, 1, 2}
 	variations := []int{0, 0, 0, 1, 1}
 	trackAccessEvents := []bool{true, true, false, true, true}
@@ -23,9 +22,7 @@ func TestEventFlush(t *testing.T) {
 			Key:            keys[index],
 			Value:          "some_value",
 			VariationIndex: &variations[index],
-			RuleIndex:      &ruleIndex,
 			Version:        &versions[index],
-			Reason:         "default",
 		}, trackAccessEvents[index])
 	}
 
@@ -57,7 +54,6 @@ func TestEventFlush(t *testing.T) {
 func TestEventFlushInvalidUrl(t *testing.T) {
 	version := uint64(1)
 	variationIndex := 0
-	ruleIndex := 0
 	recorder := NewEventRecorder(string([]byte{1, 2, 3}), 1000, "sdk_key")
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -66,9 +62,7 @@ func TestEventFlushInvalidUrl(t *testing.T) {
 		Key:            "some_toggle",
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
-		RuleIndex:      &ruleIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -77,9 +71,7 @@ func TestEventFlushInvalidUrl(t *testing.T) {
 		Key:            "some_toggle",
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
-		RuleIndex:      &ruleIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 
 	httpmock.ActivateNonDefault(&recorder.httpClient)
@@ -97,7 +89,6 @@ func TestEventFlushInvalidUrl(t *testing.T) {
 func TestEventFlushInvalidResp(t *testing.T) {
 	version := uint64(1)
 	variationIndex := 0
-	ruleIndex := 0
 	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -106,9 +97,7 @@ func TestEventFlushInvalidResp(t *testing.T) {
 		Key:            "some_toggle",
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
-		RuleIndex:      &ruleIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -117,9 +106,7 @@ func TestEventFlushInvalidResp(t *testing.T) {
 		Key:            "some_toggle",
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
-		RuleIndex:      &ruleIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 
 	httpmock.ActivateNonDefault(&recorder.httpClient)
@@ -137,7 +124,6 @@ func TestEventFlushInvalidResp(t *testing.T) {
 func TestCloseEvent(t *testing.T) {
 	version := uint64(1)
 	variationIndex := 0
-	ruleIndex := 0
 	recorder := NewEventRecorder("https://featureprobe.com/api/events", 1000, "sdk_key")
 	recorder.RecordAccess(AccessEvent{
 		Kind:           "access",
@@ -146,9 +132,7 @@ func TestCloseEvent(t *testing.T) {
 		Key:            "some_toggle",
 		Value:          "some_value",
 		VariationIndex: &variationIndex,
-		RuleIndex:      &ruleIndex,
 		Version:        &version,
-		Reason:         "default",
 	}, true)
 	httpmock.ActivateNonDefault(&recorder.httpClient)
 	httpmock.RegisterResponder("POST", "https://featureprobe.com/api/events",
