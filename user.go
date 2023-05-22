@@ -46,6 +46,11 @@ func (u FPUser) Get(key string) string {
 	return u.attrs[key]
 }
 
+func (u FPUser) ContainAttr(key string) bool {
+	_, ok := u.attrs[key]
+	return ok
+}
+
 func (u FPUser) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"key":   u.Key(),

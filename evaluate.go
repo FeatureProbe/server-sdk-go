@@ -322,10 +322,11 @@ func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 }
 
 func (c *Condition) matchStringCondition(user FPUser, predicate string) bool {
-	customValue := user.Get(c.Subject)
-	if len(c.Subject) == 0 {
+
+	if !user.ContainAttr(c.Subject) {
 		return false
 	}
+	customValue := user.Get(c.Subject)
 
 	switch predicate {
 	case "is one of":
