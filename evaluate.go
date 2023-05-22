@@ -323,7 +323,7 @@ func (c *Condition) meet(user FPUser, segments map[string]Segment) bool {
 
 func (c *Condition) matchStringCondition(user FPUser, predicate string) bool {
 	customValue := user.Get(c.Subject)
-	if len(customValue) == 0 {
+	if len(c.Subject) == 0 {
 		return false
 	}
 
