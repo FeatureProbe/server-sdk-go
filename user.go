@@ -2,16 +2,19 @@ package featureprobe
 
 import (
 	"strconv"
+	"sync"
 	"time"
 )
 
 type FPUser struct {
+	mu    *sync.RWMutex
 	key   string
 	attrs map[string]string
 }
 
 func NewUser() FPUser {
 	return FPUser{
+		mu:    &sync.RWMutex{},
 		attrs: map[string]string{},
 	}
 }
@@ -34,20 +37,37 @@ func (u FPUser) generateKey() string {
 }
 
 func (u FPUser) With(key string, value string) FPUser {
+	u.mu.Lock()
 	u.attrs[key] = value
+	u.mu.Unlock()
+
 	return u
 }
 
 func (u FPUser) GetAll() map[string]string {
-	return u.attrs
+	u.mu.RLock()
+	snapshot := make(map[string]string, len(u.attrs))
+	for k, v := range u.attrs {
+		snapshot[k] = v
+	}
+	u.mu.RUnlock()
+
+	return snapshot
 }
 
 func (u FPUser) Get(key string) string {
-	return u.attrs[key]
+	u.mu.RLock()
+	v := u.attrs[key]
+	u.mu.RUnlock()
+
+	return v
 }
 
 func (u FPUser) ContainAttr(key string) bool {
+	u.mu.RLock()
 	_, ok := u.attrs[key]
+	u.mu.RUnlock()
+
 	return ok
 }
 

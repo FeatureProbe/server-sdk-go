@@ -31,8 +31,6 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
-github.com/socket-iox/socket-io-client-go v1.0.3 h1:n9WJvg0JIMAi6JRBxVWt/dwFNq/tDEoArqNhWrUl4jQ=
-github.com/socket-iox/socket-io-client-go v1.0.3/go.mod h1:FwDTCw0W3FRGh7eXoj8Pho6fCSLFtUYvF2UOzcZScgo=
 github.com/socket-iox/socket-io-client-go v1.0.4 h1:i2yahBo8F8/mpK7y8jROBMAu+vdHWZCuDIXI2Qsaizk=
 github.com/socket-iox/socket-io-client-go v1.0.4/go.mod h1:yhSGbNknJXclxQc9hgfRdMsfo8SO2XHSMbZylJeJvTU=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
