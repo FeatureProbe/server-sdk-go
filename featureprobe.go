@@ -308,16 +308,14 @@ func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool
 	}()
 
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
-	detail := FPBoolDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+	result = FPBoolDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(bool)
 	if !ok {
-		detail.Reason = "Value type mismatch"
-		result = detail
+		result.Reason = "Value type mismatch"
 		return
 	}
-	detail.Value = val
-	result = detail
+	result.Value = val
 	return
 }
 
@@ -330,16 +328,14 @@ func (fp *FeatureProbe) StrDetail(toggle string, user FPUser, defaultValue strin
 	}()
 
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
-	detail := FPStrDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+	result = FPStrDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(string)
 	if !ok {
-		detail.Reason = "Value type mismatch"
-		result = detail
+		result.Reason = "Value type mismatch"
 		return
 	}
-	detail.Value = val
-	result = detail
+	result.Value = val
 	return
 }
 
@@ -352,16 +348,14 @@ func (fp *FeatureProbe) NumberDetail(toggle string, user FPUser, defaultValue fl
 	}()
 
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
-	detail := FPNumberDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
+	result = FPNumberDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(float64)
 	if !ok {
-		detail.Reason = "Value type mismatch"
-		result = detail
+		result.Reason = "Value type mismatch"
 		return
 	}
-	detail.Value = val
-	result = detail
+	result.Value = val
 	return
 }
 
