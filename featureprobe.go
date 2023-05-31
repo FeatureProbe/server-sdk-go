@@ -63,6 +63,12 @@ type FPJsonDetail struct {
 }
 
 func NewFeatureProbe(config FPConfig) FeatureProbe {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+		}
+	}()
+
 	ready := make(chan struct{}, 1)
 	setServerUrls(&config)
 	timeout := config.RefreshInterval
@@ -157,43 +163,77 @@ func NewFeatureProbeForTest(toggles map[string]interface{}) FeatureProbe {
 	}
 }
 
-func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool) bool {
+func (fp *FeatureProbe) BoolValue(toggle string, user FPUser, defaultValue bool) (result bool) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = defaultValue
+		}
+	}()
+
 	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
-	r, ok := val.(bool)
+	result, ok := val.(bool)
 	if !ok {
-		return defaultValue
+		result = defaultValue
 	}
-	return r
+	return
 }
 
-func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string) string {
+func (fp *FeatureProbe) StrValue(toggle string, user FPUser, defaultValue string) (result string) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = defaultValue
+		}
+	}()
+
 	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
-	r, ok := val.(string)
+	result, ok := val.(string)
 	if !ok {
-		return defaultValue
+		result = defaultValue
 	}
-	return r
+	return
 }
 
-func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) float64 {
+func (fp *FeatureProbe) NumberValue(toggle string, user FPUser, defaultValue float64) (result float64) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = defaultValue
+		}
+	}()
+
 	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
 	i, ok := val.(int)
 	if ok {
-		return float64(i)
+		result = float64(i)
 	}
-	f, ok := val.(float64)
+	result, ok = val.(float64)
 	if !ok {
-		return defaultValue
+		result = defaultValue
 	}
-	return f
+	return
 }
 
-func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) interface{} {
-	val, _, _, _ := fp.genericDetail(toggle, user, defaultValue)
-	return val
+func (fp *FeatureProbe) JsonValue(toggle string, user FPUser, defaultValue interface{}) (result interface{}) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = defaultValue
+		}
+	}()
+
+	result, _, _, _ = fp.genericDetail(toggle, user, defaultValue)
+	return
 }
 
 func (fp *FeatureProbe) Track(eventName string, user FPUser, value *float64) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+		}
+	}()
+
 	if fp.Recorder != nil {
 		fp.Recorder.RecordCustom(CustomEvent{
 			Kind:  "custom",
@@ -259,49 +299,83 @@ func (fp *FeatureProbe) trackEvent(toggle Toggle, user FPUser, evalDetail EvalDe
 	}
 }
 
-func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) FPBoolDetail {
+func (fp *FeatureProbe) BoolDetail(toggle string, user FPUser, defaultValue bool) (result FPBoolDetail) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = FPBoolDetail{Value: defaultValue, Reason: "unknown error"}
+		}
+	}()
+
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
 	detail := FPBoolDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(bool)
 	if !ok {
 		detail.Reason = "Value type mismatch"
-		return detail
+		result = detail
+		return
 	}
 	detail.Value = val
-	return detail
+	result = detail
+	return
 }
 
-func (fp *FeatureProbe) StrDetail(toggle string, user FPUser, defaultValue string) FPStrDetail {
+func (fp *FeatureProbe) StrDetail(toggle string, user FPUser, defaultValue string) (result FPStrDetail) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = FPStrDetail{Value: defaultValue, Reason: "unknown error"}
+		}
+	}()
+
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
 	detail := FPStrDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(string)
 	if !ok {
 		detail.Reason = "Value type mismatch"
-		return detail
+		result = detail
+		return
 	}
 	detail.Value = val
-	return detail
+	result = detail
+	return
 }
 
-func (fp *FeatureProbe) NumberDetail(toggle string, user FPUser, defaultValue float64) FPNumberDetail {
+func (fp *FeatureProbe) NumberDetail(toggle string, user FPUser, defaultValue float64) (result FPNumberDetail) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = FPNumberDetail{Value: defaultValue, Reason: "unknown error"}
+		}
+	}()
+
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
 	detail := FPNumberDetail{Value: defaultValue, RuleIndex: ruleIndex, Version: version, Reason: reason}
 
 	val, ok := value.(float64)
 	if !ok {
 		detail.Reason = "Value type mismatch"
-		return detail
+		result = detail
+		return
 	}
 	detail.Value = val
-	return detail
+	result = detail
+	return
 }
 
-func (fp *FeatureProbe) JsonDetail(toggle string, user FPUser, defaultValue interface{}) FPJsonDetail {
+func (fp *FeatureProbe) JsonDetail(toggle string, user FPUser, defaultValue interface{}) (result FPJsonDetail) {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+			result = FPJsonDetail{Value: defaultValue, Reason: "unknown error"}
+		}
+	}()
+
 	value, ruleIndex, version, reason := fp.genericDetail(toggle, user, defaultValue)
-	detail := FPJsonDetail{Value: value, RuleIndex: ruleIndex, Version: version, Reason: reason}
-	return detail
+	result = FPJsonDetail{Value: value, RuleIndex: ruleIndex, Version: version, Reason: reason}
+	return
 }
 
 func newHttpClient(timeout time.Duration) http.Client {
@@ -324,10 +398,22 @@ func newHttpClient(timeout time.Duration) http.Client {
 
 // Initialized return false means not successfully fetch remote resource
 func (fp *FeatureProbe) Initialized() bool {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+		}
+	}()
+
 	return fp.Syncer.Initialized()
 }
 
 func (fp *FeatureProbe) Close() {
+	defer func() {
+		if recoveredError := recover(); recoveredError != nil {
+			fmt.Printf("FP encountered an unknown error: %s\n", recoveredError)
+		}
+	}()
+
 	if fp.Syncer != nil {
 		fp.Syncer.Stop()
 	}

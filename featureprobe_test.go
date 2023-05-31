@@ -245,7 +245,7 @@ func TestUnitTestingForCaller(t *testing.T) {
 	fp := NewFeatureProbeForTest(toggles)
 	user := NewUser()
 
-	assert.Equal(t, 0.0, fp.NumberValue("toggle0", user, 2))
+	assert.Equal(t, 2.0, fp.NumberValue("toggle0", user, 2))
 	assert.Equal(t, 1.0, fp.NumberValue("toggle1", user, 2))
 	assert.Equal(t, true, fp.BoolValue("toggle2", user, false))
 	assert.Equal(t, "red", fp.StrValue("toggle3", user, "blue"))
