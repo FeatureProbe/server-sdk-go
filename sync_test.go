@@ -93,7 +93,9 @@ func setup(t *testing.T) (Repository, string) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
 	jsonStr := string(bytes)
-	err := json.Unmarshal(bytes, &repo)
+	repoData := RepositoryData{}
+	err := json.Unmarshal(bytes, &repoData)
+	repo.flush(repoData)
 	assert.Equal(t, nil, err)
 	return repo, jsonStr
 }
