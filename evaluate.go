@@ -16,9 +16,9 @@ import (
 )
 
 type Repository struct {
-	Toggles        atomic.Value
-	Segments       atomic.Value
-	DebugUntilTime atomic.Uint64
+	toggles        atomic.Value
+	segments       atomic.Value
+	debugUntilTime atomic.Uint64
 }
 
 type RepositoryData struct {
@@ -538,40 +538,40 @@ func (r *Rule) allow(user FPUser) bool {
 }
 
 func (repo *Repository) Clear() {
-	repo.Toggles.Store(make(map[string]Toggle))
-	repo.Segments.Store(make(map[string]Segment))
-	repo.DebugUntilTime.Store(0)
+	repo.toggles.Store(make(map[string]Toggle))
+	repo.segments.Store(make(map[string]Segment))
+	repo.debugUntilTime.Store(0)
 }
 
 func (repo *Repository) getToggles() (result map[string]Toggle) {
-	result = repo.Toggles.Load().(map[string]Toggle)
+	result = repo.toggles.Load().(map[string]Toggle)
 	return
 }
 
 func (repo *Repository) getToggle(toggleKey string) (result Toggle, ok bool) {
-	toggles := repo.Toggles.Load().(map[string]Toggle)
+	toggles := repo.toggles.Load().(map[string]Toggle)
 	result, ok = toggles[toggleKey]
 	return
 }
 
 func (repo *Repository) getSegments() (result map[string]Segment) {
-	result = repo.Segments.Load().(map[string]Segment)
+	result = repo.segments.Load().(map[string]Segment)
 	return
 }
 
 func (repo *Repository) getSegment(segmentKey string) (result Segment, ok bool) {
-	segments := repo.Toggles.Load().(map[string]Segment)
+	segments := repo.toggles.Load().(map[string]Segment)
 	result, ok = segments[segmentKey]
 	return
 }
 
 func (repo *Repository) getDebugUntilTime() (result uint64) {
-	result = repo.DebugUntilTime.Load()
+	result = repo.debugUntilTime.Load()
 	return
 }
 
 func (repo *Repository) flush(data RepositoryData) {
-	repo.Toggles.Store(data.Toggles)
-	repo.Segments.Store(data.Segments)
-	repo.DebugUntilTime.Store(data.DebugUntilTime)
+	repo.toggles.Store(data.Toggles)
+	repo.segments.Store(data.Segments)
+	repo.debugUntilTime.Store(data.DebugUntilTime)
 }
