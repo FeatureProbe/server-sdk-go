@@ -153,11 +153,13 @@ func newToggleForTest(key string, value interface{}) Toggle {
 }
 
 func NewFeatureProbeForTest(toggles map[string]interface{}) FeatureProbe {
-	repo := Repository{}
-	repo.Toggles = map[string]Toggle{}
+	repoData := RepositoryData{}
+	repoData.Toggles = map[string]Toggle{}
 	for key, value := range toggles {
-		repo.Toggles[key] = newToggleForTest(key, value)
+		repoData.Toggles[key] = newToggleForTest(key, value)
 	}
+	repo := Repository{}
+	repo.flush(repoData)
 	return FeatureProbe{
 		Repo: &repo,
 	}
@@ -254,11 +256,11 @@ func (fp *FeatureProbe) genericDetail(toggle string, user FPUser, defaultValue i
 	if fp.Repo == nil {
 		return defaultValue, ruleIndex, version, reason
 	}
-	t, ok := fp.Repo.Toggles[toggle]
+	t, ok := fp.Repo.getToggle(toggle)
 	if !ok {
 		return defaultValue, ruleIndex, version, reason
 	}
-	detail, _ := t.evalDetail(user, fp.Repo.Toggles, fp.Repo.Segments, defaultValue, fp.Config.MaxPrerequisitesDeep)
+	detail, _ := t.evalDetail(user, fp.Repo.getToggles(), fp.Repo.getSegments(), defaultValue, fp.Config.MaxPrerequisitesDeep)
 
 	variationIndex = detail.VariationIndex
 	ruleIndex = detail.RuleIndex
@@ -283,7 +285,7 @@ func (fp *FeatureProbe) trackEvent(toggle Toggle, user FPUser, evalDetail EvalDe
 		Version:        evalDetail.Version,
 	}, toggle.TrackAccessEvents)
 
-	if fp.Repo.DebugUntilTime > 0 && fp.Repo.DebugUntilTime >= uint64(nowTime) {
+	if fp.Repo.getDebugUntilTime() > 0 && fp.Repo.getDebugUntilTime() >= uint64(nowTime) {
 		fp.Recorder.RecordDebugAccess(DebugEvent{
 			Kind:           "debug",
 			Time:           nowTime,

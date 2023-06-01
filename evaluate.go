@@ -9,12 +9,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/masterminds/semver"
 )
 
 type Repository struct {
+	Toggles        atomic.Value
+	Segments       atomic.Value
+	DebugUntilTime atomic.Uint64
+}
+
+type RepositoryData struct {
 	Toggles        map[string]Toggle  `json:"toggles"`
 	Segments       map[string]Segment `json:"segments"`
 	DebugUntilTime uint64             `json:"debugUntilTime"`
@@ -531,6 +538,40 @@ func (r *Rule) allow(user FPUser) bool {
 }
 
 func (repo *Repository) Clear() {
-	repo.Toggles = make(map[string]Toggle)
-	repo.Segments = make(map[string]Segment)
+	repo.Toggles.Store(make(map[string]Toggle))
+	repo.Segments.Store(make(map[string]Segment))
+	repo.DebugUntilTime.Store(0)
+}
+
+func (repo *Repository) getToggles() (result map[string]Toggle) {
+	result = repo.Toggles.Load().(map[string]Toggle)
+	return
+}
+
+func (repo *Repository) getToggle(toggleKey string) (result Toggle, ok bool) {
+	toggles := repo.Toggles.Load().(map[string]Toggle)
+	result, ok = toggles[toggleKey]
+	return
+}
+
+func (repo *Repository) getSegments() (result map[string]Segment) {
+	result = repo.Segments.Load().(map[string]Segment)
+	return
+}
+
+func (repo *Repository) getSegment(segmentKey string) (result Segment, ok bool) {
+	segments := repo.Toggles.Load().(map[string]Segment)
+	result, ok = segments[segmentKey]
+	return
+}
+
+func (repo *Repository) getDebugUntilTime() (result uint64) {
+	result = repo.DebugUntilTime.Load()
+	return
+}
+
+func (repo *Repository) flush(data RepositoryData) {
+	repo.Toggles.Store(data.Toggles)
+	repo.Segments.Store(data.Segments)
+	repo.DebugUntilTime.Store(data.DebugUntilTime)
 }
