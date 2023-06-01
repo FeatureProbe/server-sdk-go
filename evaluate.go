@@ -544,24 +544,46 @@ func (repo *Repository) Clear() {
 }
 
 func (repo *Repository) getToggles() (result map[string]Toggle) {
-	result = repo.toggles.Load().(map[string]Toggle)
+	toggles := repo.toggles.Load()
+	if toggles == nil {
+		return make(map[string]Toggle)
+	}
+	result = toggles.(map[string]Toggle)
 	return
 }
 
 func (repo *Repository) getToggle(toggleKey string) (result Toggle, ok bool) {
-	toggles := repo.toggles.Load().(map[string]Toggle)
-	result, ok = toggles[toggleKey]
+	toggles := repo.toggles.Load()
+	if toggles == nil {
+		return Toggle{}, false
+	}
+	togglesMap, ok := toggles.(map[string]Toggle)
+	if !ok {
+		return Toggle{}, false
+	}
+	result, ok = togglesMap[toggleKey]
 	return
 }
 
 func (repo *Repository) getSegments() (result map[string]Segment) {
-	result = repo.segments.Load().(map[string]Segment)
+	segments := repo.segments.Load()
+	if segments == nil {
+		return make(map[string]Segment)
+	}
+	result = segments.(map[string]Segment)
 	return
 }
 
 func (repo *Repository) getSegment(segmentKey string) (result Segment, ok bool) {
-	segments := repo.toggles.Load().(map[string]Segment)
-	result, ok = segments[segmentKey]
+	segments := repo.toggles.Load()
+	if segments == nil {
+		return Segment{}, false
+	}
+	segmentsMap, ok := segments.(map[string]Segment)
+	if !ok {
+		return Segment{}, false
+	}
+	result, ok = segmentsMap[segmentKey]
 	return
 }
 
