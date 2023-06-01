@@ -9,12 +9,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/masterminds/semver"
 )
 
 type Repository struct {
+	toggles        atomic.Value
+	segments       atomic.Value
+	debugUntilTime atomic.Uint64
+}
+
+type RepositoryData struct {
 	Toggles        map[string]Toggle  `json:"toggles"`
 	Segments       map[string]Segment `json:"segments"`
 	DebugUntilTime uint64             `json:"debugUntilTime"`
@@ -531,6 +538,62 @@ func (r *Rule) allow(user FPUser) bool {
 }
 
 func (repo *Repository) Clear() {
-	repo.Toggles = make(map[string]Toggle)
-	repo.Segments = make(map[string]Segment)
+	repo.toggles.Store(make(map[string]Toggle))
+	repo.segments.Store(make(map[string]Segment))
+	repo.debugUntilTime.Store(0)
+}
+
+func (repo *Repository) getToggles() (result map[string]Toggle) {
+	toggles := repo.toggles.Load()
+	if toggles == nil {
+		return make(map[string]Toggle)
+	}
+	result = toggles.(map[string]Toggle)
+	return
+}
+
+func (repo *Repository) getToggle(toggleKey string) (result Toggle, ok bool) {
+	toggles := repo.toggles.Load()
+	if toggles == nil {
+		return Toggle{}, false
+	}
+	togglesMap, ok := toggles.(map[string]Toggle)
+	if !ok {
+		return Toggle{}, false
+	}
+	result, ok = togglesMap[toggleKey]
+	return
+}
+
+func (repo *Repository) getSegments() (result map[string]Segment) {
+	segments := repo.segments.Load()
+	if segments == nil {
+		return make(map[string]Segment)
+	}
+	result = segments.(map[string]Segment)
+	return
+}
+
+func (repo *Repository) getSegment(segmentKey string) (result Segment, ok bool) {
+	segments := repo.toggles.Load()
+	if segments == nil {
+		return Segment{}, false
+	}
+	segmentsMap, ok := segments.(map[string]Segment)
+	if !ok {
+		return Segment{}, false
+	}
+	result, ok = segmentsMap[segmentKey]
+	return
+}
+
+func (repo *Repository) getDebugUntilTime() (result uint64) {
+	result = repo.debugUntilTime.Load()
+	return
+}
+
+func (repo *Repository) flush(data RepositoryData) {
+	repo.toggles.Store(data.Toggles)
+	repo.segments.Store(data.Segments)
+	repo.debugUntilTime.Store(data.DebugUntilTime)
 }

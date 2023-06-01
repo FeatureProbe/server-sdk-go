@@ -115,7 +115,9 @@ func (s *Synchronizer) FetchRemoteRepo() error {
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	s.mu.Lock()
-	err = json.Unmarshal(bodyBytes, s.repository)
+	repoData := RepositoryData{}
+	err = json.Unmarshal(bodyBytes, &repoData)
+	s.repository.flush(repoData)
 	s.mu.Unlock()
 	if err != nil {
 		fmt.Printf("%s\n", err)

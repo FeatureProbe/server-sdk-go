@@ -58,8 +58,9 @@ func TestEvalNilRepo(t *testing.T) {
 func TestEval(t *testing.T) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-
-	err := json.Unmarshal(bytes, &repo)
+	repoDate := RepositoryData{}
+	err := json.Unmarshal(bytes, &repoDate)
+	repo.flush(repoDate)
 	assert.Equal(t, nil, err)
 
 	user := NewUser().StableRollout("key11").With("city", "4")
@@ -202,7 +203,9 @@ func TestOutOfIndexToggle(t *testing.T) {
 	}
 }`
 	var repo Repository
-	err := json.Unmarshal([]byte(jsonStr), &repo)
+	repoData := RepositoryData{}
+	err := json.Unmarshal([]byte(jsonStr), &repoData)
+	repo.flush(repoData)
 	assert.Equal(t, nil, err)
 
 	fp := setupFeatureProbe(t, repo)
@@ -269,7 +272,7 @@ func TestCloseClient(t *testing.T) {
 	fp := NewFeatureProbe(config)
 
 	fp.Close()
-	assert.Equal(t, 0, len(fp.Repo.Toggles))
+	assert.Equal(t, 0, len(fp.Repo.getToggles()))
 }
 
 func TestTrack(t *testing.T) {
@@ -287,8 +290,10 @@ func TestTrack(t *testing.T) {
 func TestRecorderDebugEvent(t *testing.T) {
 	var repo Repository
 	bytes, _ := ioutil.ReadFile("./resources/fixtures/repo.json")
-	json.Unmarshal(bytes, &repo)
-	repo.DebugUntilTime = uint64((time.Now().UnixNano() / 1e6) + 5000)
+	repoData := RepositoryData{}
+	json.Unmarshal(bytes, &repoData)
+	repoData.DebugUntilTime = uint64((time.Now().UnixNano() / 1e6) + 5000)
+	repo.flush(repoData)
 
 	user := NewUser().With("city", "4")
 	fp := setupFeatureProbe(t, repo)
@@ -322,8 +327,9 @@ func TestContract(t *testing.T) {
 	for _, scenario := range tests.Tests {
 		t.Log("scenario: ", scenario.Scenario)
 		assert.NotEmpty(t, scenario.Cases)
-
-		fp := FeatureProbe{Repo: &scenario.Fixture, Config: FPConfig{MaxPrerequisitesDeep: 5}}
+		repo := Repository{}
+		repo.flush(scenario.Fixture)
+		fp := FeatureProbe{Repo: &repo, Config: FPConfig{MaxPrerequisitesDeep: 5}}
 
 		for _, Case := range scenario.Cases {
 			t.Log("  case: ", Case.Name)
@@ -451,9 +457,9 @@ type ContractTests struct {
 }
 
 type Scenario struct {
-	Scenario string     `json:"scenario"`
-	Cases    []Case     `json:"cases"`
-	Fixture  Repository `json:"fixture"`
+	Scenario string         `json:"scenario"`
+	Cases    []Case         `json:"cases"`
+	Fixture  RepositoryData `json:"fixture"`
 }
 
 type Case struct {
