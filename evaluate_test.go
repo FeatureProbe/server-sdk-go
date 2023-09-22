@@ -147,7 +147,7 @@ func TestPrerequisiteToggleMatched(t *testing.T) {
 	assert.Equal(t, detail.Value, "2")
 }
 
-func TestPrerequisiteToggleNotMatchedShouldBeReturnDefaultValue(t *testing.T) {
+func TestPrerequisiteToggleNotMatchedShouldBeReturnDisabledValue(t *testing.T) {
 	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "6")
@@ -155,11 +155,11 @@ func TestPrerequisiteToggleNotMatchedShouldBeReturnDefaultValue(t *testing.T) {
 
 	detail, err := toggle.evalDetail(user, repo.getToggles(), repo.getSegments(), nil, 10)
 	assert.Empty(t, err)
-	assert.Equal(t, detail.Reason, "default")
-	assert.Equal(t, detail.Value, "1")
+	assert.Contains(t, detail.Reason, "disable")
+	assert.Equal(t, detail.Value, "0")
 }
 
-func TestPrerequisiteToggleNotExistShouldBeReturnDefaultValue(t *testing.T) {
+func TestPrerequisiteToggleNotExistShouldBeReturnDisabledValue(t *testing.T) {
 	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "6")
@@ -167,11 +167,11 @@ func TestPrerequisiteToggleNotExistShouldBeReturnDefaultValue(t *testing.T) {
 
 	detail, err := toggle.evalDetail(user, repo.getToggles(), repo.getSegments(), nil, 10)
 	assert.Empty(t, err)
-	assert.Equal(t, detail.Reason, "prerequisite toggle not exist")
-	assert.Equal(t, detail.Value, "1")
+	assert.Contains(t, detail.Reason, "prerequisite toggle not exist")
+	assert.Equal(t, detail.Value, "0")
 }
 
-func TestPrerequisiteToggleDeepOverlowShouldBeReturnDefaultValue(t *testing.T) {
+func TestPrerequisiteToggleDepthOverlowShouldReturnDisabledValue(t *testing.T) {
 	repo, _ := loadRepoFromFile()
 
 	user := NewUser().With("city", "6")
@@ -179,8 +179,8 @@ func TestPrerequisiteToggleDeepOverlowShouldBeReturnDefaultValue(t *testing.T) {
 
 	detail, err := toggle.evalDetail(user, repo.getToggles(), repo.getSegments(), nil, 5)
 	assert.Empty(t, err)
-	assert.Equal(t, detail.Reason, "prerequisite deep overflow")
-	assert.Equal(t, detail.Value, "1")
+	assert.Contains(t, detail.Reason, "prerequisite depth overflow")
+	assert.Equal(t, detail.Value, "0")
 }
 
 func TestDistributionNoSalt(t *testing.T) {

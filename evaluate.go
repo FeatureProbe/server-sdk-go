@@ -104,7 +104,7 @@ type Prerequisite struct {
 
 var (
 	ErrPrerequisiteNotExist     = errors.New("prerequisite toggle not exist")
-	ErrPrerequisiteDeepOverflow = errors.New("prerequisite deep overflow")
+	ErrPrerequisiteDeepOverflow = errors.New("prerequisite depth overflow")
 )
 
 func saltHash(key string, salt string, bucketSize uint32) int {
@@ -134,29 +134,29 @@ func (r *Range) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (t *Toggle) eval(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (interface{}, error) {
-	detail, err := t.evalDetail(user, toggles, segments, defaultValue, deep)
+func (t *Toggle) eval(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, depth int) (interface{}, error) {
+	detail, err := t.evalDetail(user, toggles, segments, defaultValue, depth)
 	return detail.Value, err
 }
 
-func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (EvalDetail, error) {
-	detail, err := t.doEvalDetail(user, toggles, segments, defaultValue, deep)
-	if err == ErrPrerequisiteDeepOverflow || err == ErrPrerequisiteNotExist {
-		defaultDetail, evalErr := t.createDefaultEvalDetail(EvalParam{
+func (t *Toggle) evalDetail(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, depth int) (EvalDetail, error) {
+	detail, err := t.doEvalDetail(user, toggles, segments, defaultValue, depth)
+	if errors.Is(err, ErrPrerequisiteDeepOverflow) || errors.Is(err, ErrPrerequisiteNotExist) {
+		disabledDetail, evalErr := t.createDisabledEvalDetail(EvalParam{
 			User:       user,
 			Segments:   segments,
 			Variations: t.Variations,
 			Key:        t.Key,
 		}, defaultValue)
 		if evalErr == nil {
-			defaultDetail.Reason = err.Error()
+			disabledDetail.Reason = err.Error()
 		}
-		return defaultDetail, evalErr
+		return disabledDetail, evalErr
 	}
 	return detail, err
 }
 
-func (t *Toggle) prerequisite(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (bool, error) {
+func (t *Toggle) meetPrerequisite(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (bool, error) {
 	if t.Prerequisites == nil && len(t.Prerequisites) == 0 {
 		return true, nil
 	}
@@ -176,8 +176,8 @@ func (t *Toggle) prerequisite(user FPUser, toggles map[string]Toggle, segments m
 	return true, nil
 }
 
-func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, deep int) (EvalDetail, error) {
-	if deep <= 0 {
+func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments map[string]Segment, defaultValue interface{}, depth int) (EvalDetail, error) {
+	if depth <= 0 {
 		return t.buildEvalDetail(defaultValue, nil, nil, ""), ErrPrerequisiteDeepOverflow
 	}
 	params := EvalParam{
@@ -187,18 +187,14 @@ func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments m
 		Key:        t.Key,
 	}
 	if !t.Enabled {
-		serve, index, err := t.DisabledServe.selectVariation(params)
-		if err != nil {
-			return t.buildEvalDetail(defaultValue, nil, nil, err.Error()), err
-		}
-		return t.buildEvalDetail(serve, nil, index, "disabled"), nil
+		return t.createDisabledEvalDetail(params, defaultValue)
 	}
-	match, err := t.prerequisite(user, toggles, segments, defaultValue, deep)
+	match, err := t.meetPrerequisite(user, toggles, segments, defaultValue, depth)
 	if err != nil {
 		return t.buildEvalDetail(defaultValue, nil, nil, ""), err
 	}
 	if !match {
-		return t.createDefaultEvalDetail(params, defaultValue)
+		return t.createDisabledEvalDetail(params, defaultValue)
 	}
 	for ruleIndex, rule := range t.Rules {
 		serve, vi, err := rule.serveVariation(params)
@@ -213,11 +209,21 @@ func (t *Toggle) doEvalDetail(user FPUser, toggles map[string]Toggle, segments m
 }
 
 func (t *Toggle) createDefaultEvalDetail(params EvalParam, defaultValue interface{}) (EvalDetail, error) {
-	serve, vi, err := t.DefaultServe.selectVariation(params)
+	return t.createPredefinedEvalDetail(params, defaultValue, t.DefaultServe, "default")
+}
+
+func (t *Toggle) createDisabledEvalDetail(params EvalParam, defaultValue interface{}) (EvalDetail, error) {
+	return t.createPredefinedEvalDetail(params, defaultValue, t.DisabledServe, "disabled")
+}
+
+func (t *Toggle) createPredefinedEvalDetail(params EvalParam, defaultValue interface{},
+predefinedServe Serve, reason string) (EvalDetail,
+	error) {
+	serve, vi, err := predefinedServe.selectVariation(params)
 	if err != nil {
 		return t.buildEvalDetail(defaultValue, nil, nil, err.Error()), err
 	}
-	return t.buildEvalDetail(serve, nil, vi, "default"), nil
+	return t.buildEvalDetail(serve, nil, vi, reason), nil
 }
 
 func (t *Toggle) buildEvalDetail(value interface{}, ruleIndex *int, variationIndex *int, reason string) EvalDetail {

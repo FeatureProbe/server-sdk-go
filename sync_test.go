@@ -13,7 +13,7 @@ import (
 func TestSyncInitSuccess(t *testing.T) {
 	repo, jsonStr := setup(t)
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 1000 * time.Millisecond, "sdk_key", &repo2)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
@@ -35,7 +35,7 @@ func TestSyncInitSuccess(t *testing.T) {
 
 func TestSyncInitFailed(t *testing.T) {
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 500, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 500 * time.Millisecond, "sdk_key", &repo2)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
@@ -54,10 +54,11 @@ func TestSyncInitFailed(t *testing.T) {
 
 func TestSyncInvalidJson(t *testing.T) {
 	var repo2 Repository
-	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 500, "sdk_key", &repo2)
+	synchronizer := NewSynchronizer("https://featureprobe.com/api/toggles", 500 * time.Millisecond, "sdk_key", &repo2)
 
+	invalidJson := `{ `
 	httpmock.RegisterResponder("GET", "https://featureprobe.com/api/toggles",
-		httpmock.NewStringResponder(200, `{ `))
+		httpmock.NewStringResponder(200, invalidJson))
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
 
 	synchronizer.Start(make(chan<- struct{}))
@@ -73,7 +74,8 @@ func TestSyncInvalidJson(t *testing.T) {
 
 func TestSyncInvalidUrl(t *testing.T) {
 	var repo2 Repository
-	synchronizer := NewSynchronizer(string([]byte{1, 2, 3}), 100, "sdk_key", &repo2)
+	invalidUrl := string([]byte{1, 2, 3})
+	synchronizer := NewSynchronizer(invalidUrl, 100 * time.Millisecond, "sdk_key", &repo2)
 	_, jsonStr := setup(t)
 
 	httpmock.ActivateNonDefault(&synchronizer.httpClient)
