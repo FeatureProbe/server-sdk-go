@@ -17,7 +17,8 @@ func TestNewFeatureProbe(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	config := FPConfig{
-		RefreshInterval: 100,
+		RemoteUrl: "https://featureprobe.com/",
+		RefreshInterval: 100 * time.Millisecond,
 		Repo:            &repo,
 	}
 	client := NewFeatureProbe(config)
@@ -26,7 +27,8 @@ func TestNewFeatureProbe(t *testing.T) {
 
 func TestEvalNilRepo(t *testing.T) {
 	config := FPConfig{
-		RefreshInterval: 100,
+		RemoteUrl: "https://featureprobe.com/",
+		RefreshInterval: 100 * time.Millisecond,
 	}
 	fp := FeatureProbe{
 		Repo:   nil,
@@ -277,6 +279,7 @@ func TestCloseClient(t *testing.T) {
 
 func TestTrack(t *testing.T) {
 	config := FPConfig{
+		RemoteUrl: "http://localhost/",
 		RefreshInterval: 100 * time.Millisecond,
 	}
 	fp := NewFeatureProbe(config)
@@ -285,6 +288,7 @@ func TestTrack(t *testing.T) {
 	fp.Track("some_event", user, &value)
 	fp.Track("some_event2", user, nil)
 	assert.True(t, len(fp.Recorder.incomingEvents) == 2)
+	fp.Close()
 }
 
 func TestRecorderDebugEvent(t *testing.T) {
@@ -329,7 +333,9 @@ func TestContract(t *testing.T) {
 		assert.NotEmpty(t, scenario.Cases)
 		repo := Repository{}
 		repo.flush(scenario.Fixture)
-		fp := FeatureProbe{Repo: &repo, Config: FPConfig{MaxPrerequisitesDeep: 5}}
+		fp := FeatureProbe{Repo: &repo, Config: FPConfig{
+			RemoteUrl: "https://localhost/",
+			MaxPrerequisitesDeep: 5}}
 
 		for _, Case := range scenario.Cases {
 			t.Log("  case: ", Case.Name)
@@ -383,7 +389,8 @@ func TestContract(t *testing.T) {
 
 func assertBoolDetail(t *testing.T, Case Case, r FPBoolDetail) {
 	if Case.ExpectResult.Reason != nil {
-		assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+		//assert.True(t, strings.Contains(r.Reason, *Case.ExpectResult.Reason))
+		assert.Contains(t, r.Reason, *Case.ExpectResult.Reason)
 	}
 	if Case.ExpectResult.RuleIndex != nil {
 		assert.Equal(t, *Case.ExpectResult.RuleIndex, *r.RuleIndex)
@@ -444,6 +451,7 @@ func assertJsonDetail(t *testing.T, Case Case, r FPJsonDetail) {
 
 func setupFeatureProbe(t *testing.T, repo Repository) *FeatureProbe {
 	config := FPConfig{
+		RemoteUrl: "https://featureprobe.com/",
 		RefreshInterval: 1 * time.Second,
 		Repo:            &repo,
 	}
