@@ -149,10 +149,12 @@ func (e *EventRecorder) doFlush() {
 	req.Header.Add("Authorization", e.auth)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("User-Agent", USER_AGENT)
-	_, err = e.httpClient.Do(req)
+	resp, err := e.httpClient.Do(req)
 	if err != nil {
 		fmt.Printf("Report event fails: %s\n", err)
+		return
 	}
+	resp.Body.Close()
 }
 
 func (e *EventRecorder) buildPackedData(events []interface{}) []PackedData {
